@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -6,12 +6,21 @@ import {
   TrendingDown,
   BarChart3,
   Activity,
-  Target,
   ZoomIn,
   ZoomOut,
   RotateCcw,
 } from "lucide-react";
 import { mockStocks } from "@/data/mock/mockStocks";
+
+interface ChartDataPoint {
+  time: string;
+  price: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
 
 const StockGraphPage = () => {
   console.log("🚀 StockGraphPage component loaded");
@@ -85,7 +94,7 @@ const StockGraphPage = () => {
   };
 
   // Generate dynamic time labels based on zoom level
-  const getDynamicTimeLabel = (
+  const getDynamicTimeLabel = useCallback((
     timeIndex: number,
     timeframe: string,
     selectedTimeframe: string
@@ -126,7 +135,7 @@ const StockGraphPage = () => {
 
     // Use selectedTimeframe parameter to avoid unused variable warning
     console.log("Using timeframe:", selectedTimeframe);
-  };
+  }, [zoomLevel]);
 
   // Load stock data
   useEffect(() => {
@@ -160,7 +169,7 @@ const StockGraphPage = () => {
     }, 500); // Shorter delay, just enough to prevent race conditions
 
     return () => clearTimeout(timer);
-  }, [symbol, stock, navigate, hasAttemptedRedirect]);
+  }, [symbol, stock, navigate, hasAttemptedRedirect, displayStock]);
 
   // Reset zoom when timeframe or chart type changes
   useEffect(() => {
@@ -235,7 +244,7 @@ const StockGraphPage = () => {
 
     const interval = setInterval(() => {
       // Simulate real-time price updates with smaller, more realistic changes
-      setDisplayStock((prev) => {
+      setDisplayStock((prev: typeof displayStock) => {
         const priceChange = (Math.random() - 0.5) * 0.5; // Random change between -0.25 and 0.25
         const newPrice = Math.max(0, prev.price + priceChange);
         const newChange = newPrice - prev.price;
@@ -251,23 +260,13 @@ const StockGraphPage = () => {
     }, 8000);
 
     return () => clearInterval(interval);
-  }, [stock, stock.symbol]);
+  }, [stock]);
 
   // Generate chart data with dynamic zoom support
-  const generateChartData = (timeframe: string, currentPrice: number) => {
+  const generateChartData = useCallback((timeframe: string, currentPrice: number) => {
     console.log(
       `Generating chart data for ${timeframe} with zoom level ${zoomLevel}`
     );
-
-    interface ChartDataPoint {
-      time: string;
-      price: number;
-      open: number;
-      high: number;
-      low: number;
-      close: number;
-      volume: number;
-    }
 
     const baseDataPoints: { [key: string]: number } = {
       "1min": 60,
@@ -320,13 +319,15 @@ const StockGraphPage = () => {
       `Generated ${data.length} data points for zoom level ${zoomLevel}`
     );
     return data;
-  };
+  }, [zoomLevel, selectedTimeframe, getDynamicTimeLabel]);
 
   // State for chart data
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
 
   // Generate initial chart data
   useEffect(() => {
+    if (!stock) return;
+    
     console.log(
       `Generating chart data for ${displayStock.symbol} - ${selectedTimeframe} at zoom ${zoomLevel}`
     );
@@ -334,6 +335,7 @@ const StockGraphPage = () => {
     setChartData(newData);
     console.log("Chart data generated:", newData.length, "points");
   }, [
+    stock,
     displayStock.symbol,
     selectedTimeframe,
     displayStock.price,
@@ -417,16 +419,6 @@ const StockGraphPage = () => {
         </div>
       </div>
     );
-  }
-
-  interface ChartDataPoint {
-    time: string;
-    price: number;
-    open: number;
-    high: number;
-    low: number;
-    close: number;
-    volume: number;
   }
 
   const LineChart = ({ data }: { data: ChartDataPoint[] }) => {
@@ -909,27 +901,39 @@ const StockGraphPage = () => {
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={handleZoomOut}
-                    className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded transition-colors"
+                    disabled={zoomLevel <= 0.8}
+                    className={`p-2 rounded transition-all duration-200 ${
+                      zoomLevel <= 0.8
+                        ? "opacity-50 cursor-not-allowed"
+                        : "text-white/70 hover:text-white hover:bg-white/10"
+                    }`}
                   >
                     <ZoomOut className="h-4 w-4" />
                   </button>
                   <span className="text-xs text-white/60 font-mono min-w-[60px] text-center">
-                    {zoomLevel.toFixed(1)}x
+                    {Math.round(zoomLevel * 100)}%
                   </span>
                   <button
                     onClick={handleZoomIn}
-                    className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded transition-colors"
+                    disabled={zoomLevel >= 3}
+                    className={`p-2 rounded transition-all duration-200 ${
+                      zoomLevel >= 3
+                        ? "opacity-50 cursor-not-allowed"
+                        : "text-white/70 hover:text-white hover:bg-white/10"
+                    }`}
                   >
                     <ZoomIn className="h-4 w-4" />
                   </button>
                   <button
                     onClick={handleResetZoom}
-                    className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded transition-colors"
+                    disabled={zoomLevel === 1}
+                    className={`p-2 rounded transition-all duration-200 ${
+                      zoomLevel === 1
+                        ? "opacity-50 cursor-not-allowed"
+                        : "text-white/70 hover:text-white hover:bg-white/10"
+                    }`}
                   >
                     <RotateCcw className="h-4 w-4" />
-                  </button>
-                  <button className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded transition-colors">
-                    <Target className="h-4 w-4" />
                   </button>
                 </div>
               </div>

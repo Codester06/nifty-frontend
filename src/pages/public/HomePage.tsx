@@ -5,34 +5,21 @@ import {
   TrendingDown,
   BarChart3,
   Shield,
-  Zap,
-  Newspaper,
   Heart,
   Lock,
   CheckCircle,
   Star,
   Users,
   Award,
-  Globe,
-  MessageCircle,
-  Phone,
-  Mail,
-  HelpCircle,
-  Clock,
-  Verified,
 } from "lucide-react";
 import { mockStocks, startLivePriceUpdates } from "@/data/mock/mockStocks";
 import { Stock } from "@/shared/types/types";
 import {
-  TradingViewWidget,
   TechnicalAnalysisWidget,
 } from "@/components/charts";
 import { useAuth } from "@/shared/hooks/useAuth";
 import {
   mockSocialProofData,
-  mockTrustMetrics,
-  mockSecurityBadges,
-  mockSupportOptions,
   getLiveSocialProofData,
 } from "@/data/mock/trustData";
 
@@ -40,7 +27,7 @@ const HomePage = () => {
   const [stocks, setStocks] = useState<Stock[]>(mockStocks);
   const [showAllStocks, setShowAllStocks] = useState(false);
   const [wishlist, setWishlist] = useState<string[]>([]);
-  const [socialProofData, setSocialProofData] = useState(mockSocialProofData);
+  const [, setSocialProofData] = useState(mockSocialProofData);
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
 
@@ -549,200 +536,6 @@ const HomePage = () => {
               >
                 {isAuthenticated ? "Access Course" : "Start Learning"}
               </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Learning Paths Section */}
-      <section className="py-16 bg-white dark:bg-slate-900/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center px-4 py-2 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200 text-sm font-medium mb-6">
-              <span className="w-2 h-2 bg-indigo-500 rounded-full mr-2 animate-pulse"></span>
-              Personalized Learning Paths
-            </div>
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              Choose Your Learning Journey
-            </h2>
-            <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-              Tailored learning paths based on your experience level and
-              investment goals
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Beginner Path */}
-            <div className="group relative bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-3xl p-8 border border-green-200 dark:border-green-700 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
-              <div className="absolute top-4 right-4">
-                <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full">
-                  BEGINNER
-                </span>
-              </div>
-              <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-3xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                <span className="text-white font-bold text-2xl">🌱</span>
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-                Foundation Builder
-              </h3>
-              <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
-                Perfect for complete beginners. Start with market basics and
-                build a solid foundation.
-              </p>
-              <div className="space-y-3 mb-8">
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="h-4 w-4 text-green-500" />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Market Fundamentals
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="h-4 w-4 text-green-500" />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Investment Basics
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="h-4 w-4 text-green-500" />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Risk Management
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="h-4 w-4 text-green-500" />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Virtual Trading
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Intermediate Path */}
-            <div className="group relative bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-3xl p-8 border border-blue-200 dark:border-blue-700 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
-              <div className="absolute top-4 right-4">
-                <span className="px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full">
-                  INTERMEDIATE
-                </span>
-              </div>
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-3xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                <span className="text-white font-bold text-2xl">📈</span>
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-                Strategy Developer
-              </h3>
-              <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
-                For those with basic knowledge. Develop advanced analysis skills
-                and trading strategies.
-              </p>
-              <div className="space-y-3 mb-8">
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="h-4 w-4 text-blue-500" />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Technical Analysis
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="h-4 w-4 text-blue-500" />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Chart Patterns
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="h-4 w-4 text-blue-500" />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Trading Psychology
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="h-4 w-4 text-blue-500" />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Strategy Backtesting
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Advanced Path */}
-            <div className="group relative bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-3xl p-8 border border-purple-200 dark:border-purple-700 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
-              <div className="absolute top-4 right-4">
-                <span className="px-3 py-1 bg-purple-500 text-white text-xs font-bold rounded-full">
-                  ADVANCED
-                </span>
-              </div>
-              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-3xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                <span className="text-white font-bold text-2xl">🎯</span>
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-                Wealth Master
-              </h3>
-              <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
-                For experienced investors. Master advanced strategies and
-                portfolio management.
-              </p>
-              <div className="space-y-3 mb-8">
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="h-4 w-4 text-purple-500" />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Portfolio Optimization
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="h-4 w-4 text-purple-500" />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Options & Derivatives
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="h-4 w-4 text-purple-500" />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Algorithmic Trading
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="h-4 w-4 text-purple-500" />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    1-on-1 Mentoring
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Success Stories */}
-          <div className="mt-16 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-3xl p-8 border border-indigo-200 dark:border-indigo-700">
-            <div className="text-center mb-8">
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-                Success Stories
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                Real results from our learning community
-              </p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">
-                  ₹2.5L+
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  Average portfolio growth
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">
-                  85%
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  Students see positive returns
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-pink-600 dark:text-pink-400">
-                  6 months
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  Average time to profitability
-                </div>
-              </div>
             </div>
           </div>
         </div>
