@@ -1,11 +1,7 @@
 import { useState, useCallback, useMemo, memo } from 'react';
 import { Building2, CheckCircle, Copy } from 'lucide-react';
 
-import type { CoinPackage } from '../types/wallet';
-
-interface BankTransferDetailsProps {}
-
-const BankTransferDetails = ({}: BankTransferDetailsProps) => {
+const BankTransferDetails = () => {
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   // Bank details memoized to prevent recreation on each render
@@ -29,11 +25,13 @@ const BankTransferDetails = ({}: BankTransferDetailsProps) => {
     <div className="space-y-6">
       {/* Bank Details Section */}
       <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-2xl p-4 sm:p-6">
-        <div className="flex items-center space-x-2 sm:space-x-3 mb-4">
-          <Building2 className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-          <h4 className="text-base sm:text-lg font-semibold text-blue-800 dark:text-blue-300">
-            Bank Transfer Details
-          </h4>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            <Building2 className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+            <h4 className="text-base sm:text-lg font-semibold text-blue-800 dark:text-blue-300">
+              Bank Transfer Details
+            </h4>
+          </div>
         </div>
 
         <div className="space-y-3 sm:space-y-4">
@@ -103,18 +101,7 @@ const BankTransferDetails = ({}: BankTransferDetailsProps) => {
         </div>
       </div>
 
-      {/* Payment Instructions */}
-      <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-2xl p-3 sm:p-4">
-        <h4 className="text-xs sm:text-sm font-semibold text-yellow-800 dark:text-yellow-300 mb-2">
-          Payment Reference Instructions
-        </h4>
-        <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-yellow-700 dark:text-yellow-400">
-          <p>• Transfer the exact amount to the above account</p>
-          <p>• Use your registered mobile number as payment reference</p>
-          <p>• Complete the transfer using your banking app</p>
-          <p>• Keep the transaction receipt for your records</p>
-        </div>
-      </div>
+
 
       {/* Additional Info */}
       <div className="text-center">

@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { ThemeProvider } from './hooks/useTheme';
 import Navbar from './components/Navbar';
@@ -21,6 +21,9 @@ import AdminMarginSettings from './pages/AdminMarginSettings';
 import AdminSecurityLogs from './pages/AdminSecurityLogs';
 import AdminTradingManagement from './pages/AdminTradingManagement';
 import NiftyBulkAdminDashboard from './pages/MainAdmin';
+import Profile from './pages/Profile';
+import TransactionsPage from './pages/TransactionsPage';
+import StockGraphPage from './pages/StockGraphPage';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated } = useAuth();
@@ -51,15 +54,21 @@ const RoleBasedRedirect = () => {
 
 function AppRoutes() {
   const { loading } = useAuth();
+  const location = useLocation();
+  
+  // Hide navbar on full-screen chart pages
+  const hideNavbar = location.pathname.includes('/chart');
+  
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen text-xl">Loading...</div>;
   }
   return (
     <div className="min-h-screen transition-colors duration-200">
-      <Navbar />
+      {!hideNavbar && <Navbar />}
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/stock/:symbol" element={<StockDetail />} />
+        <Route path="/stock/:symbol/chart" element={<StockGraphPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/about" element={<AboutPage />} />
@@ -78,6 +87,16 @@ function AppRoutes() {
         <Route path="/user/wishlist" element={
           <ProtectedRoute>
             <WishlistPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/user/transactions" element={
+          <ProtectedRoute>
+            <TransactionsPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/profile" element={
+          <ProtectedRoute>
+            <Profile />
           </ProtectedRoute>
         } />
         {/* Admin routes */}
@@ -125,7 +144,7 @@ function AppRoutes() {
 
 
 
-      <Footer />
+      {!hideNavbar && <Footer />}
     </div>
   );
 }

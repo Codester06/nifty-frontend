@@ -11,7 +11,8 @@ export interface Stock {
 
 export interface User {
   id: string;
-  username: string;
+  name: string;
+  username?: string;
   mobile?: string;
   email?: string;
   role?: 'user' | 'admin' | 'superadmin';

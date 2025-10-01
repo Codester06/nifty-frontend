@@ -1,11 +1,8 @@
 import { memo, useState, useCallback } from 'react';
 import { QrCode, Copy, CheckCircle } from 'lucide-react';
 import qrCode from "../assets/upi-qr-code.png"
-import type { CoinPackage } from '../types/wallet';
 
-interface UPIPaymentDetailsProps {}
-
-const UPIPaymentDetails = ({}: UPIPaymentDetailsProps) => {
+const UPIPaymentDetails = () => {
   const [copiedUPI, setCopiedUPI] = useState(false);
 
   const upiId = '9158411834@naviaxis';
@@ -66,15 +63,7 @@ const UPIPaymentDetails = ({}: UPIPaymentDetailsProps) => {
           </div>
         </div>
         
-        {/* Payment Instructions */}
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-2xl p-3 sm:p-4 mb-4">
-          <h4 className="text-xs sm:text-sm font-semibold text-blue-800 dark:text-blue-300 mb-2">
-            Payment Instructions
-          </h4>
-          <p className="text-xs sm:text-sm text-blue-700 dark:text-blue-400">
-            Scan QR code with any UPI app to pay
-          </p>
-        </div>
+
       </div>
 
       {/* Payment Information */}
@@ -88,6 +77,8 @@ const UPIPaymentDetails = ({}: UPIPaymentDetailsProps) => {
           </p>
         </div>
       </div>
+
+
 
       {/* Additional Info */}
       <div className="text-center">

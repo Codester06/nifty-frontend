@@ -16,7 +16,7 @@ const TradingModal = ({ isOpen, onClose, stock, type }: TradingModalProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
-  const { user, updateUser, addTransaction, portfolio } = useAuth();
+  const { user, updateUser, addTransaction, portfolio, refreshWalletBalance } = useAuth();
 
   const quantityNum = parseInt(quantity) || 0;
   const totalAmount = quantityNum * stock.price;
@@ -84,6 +84,8 @@ const TradingModal = ({ isOpen, onClose, stock, type }: TradingModalProps) => {
           /* ignore for now */
         }
         showToastMessage(`Successfully bought ${quantityNum} shares of ${stock.name}!`);
+        // Refresh wallet balance from backend
+        refreshWalletBalance();
       } else {
         updateUser({ walletBalance: user.walletBalance + totalAmount });
         addTransaction({
@@ -117,6 +119,8 @@ const TradingModal = ({ isOpen, onClose, stock, type }: TradingModalProps) => {
           /* ignore for now */
         }
         showToastMessage(`Successfully sold ${quantityNum} shares of ${stock.name}!`);
+        // Refresh wallet balance from backend
+        refreshWalletBalance();
       }
       
       setIsProcessing(false);

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { Smartphone, Mail, CreditCard, User, Lock, Eye, EyeOff, ArrowRight, CheckCircle, Shield, Zap, TrendingUp, Star } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api';
 
@@ -42,55 +43,65 @@ const SignupPage = () => {
     }
   }, []);
 
-  // Progress Indicator Component
+  // Enhanced Progress Indicator Component
   const ProgressIndicator = () => {
     const steps = [
-      { name: 'Mobile', key: 'mobile', stepNumbers: [1, 2] },
-      { name: 'Email', key: 'email', stepNumbers: [3, 4] },
-      { name: 'PAN', key: 'pan', stepNumbers: [5] },
-      { name: 'Credentials', key: 'credentials', stepNumbers: [6] }
+      { name: 'Mobile', key: 'mobile', stepNumbers: [1, 2], icon: Smartphone },
+      { name: 'Email', key: 'email', stepNumbers: [3, 4], icon: Mail },
+      { name: 'PAN', key: 'pan', stepNumbers: [5], icon: CreditCard },
+      { name: 'Account', key: 'credentials', stepNumbers: [6], icon: User }
     ];
 
     return (
-      <div className="mb-8">
+      <div className="mb-10">
         <div className="flex justify-between items-center relative">
           {steps.map((stepItem, index) => {
             const isCompleted = verificationStatus[stepItem.key as keyof VerificationStatus];
             const isCurrent = stepItem.stepNumbers.includes(step);
+            const IconComponent = stepItem.icon;
 
             return (
               <div key={stepItem.key} className="flex flex-col items-center flex-1 relative z-10">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium ${
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-sm font-medium transition-all duration-300 ${
                   isCompleted
-                    ? 'bg-green-500 text-white'
+                    ? 'bg-gradient-to-br from-green-500 to-emerald-500 text-white shadow-lg'
                     : isCurrent
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-200 text-gray-600'
+                      ? 'bg-gradient-to-br from-purple-500 to-blue-500 text-white shadow-lg'
+                      : 'bg-gray-100 dark:bg-slate-700 text-gray-400 dark:text-gray-500'
                 }`}>
-                  {isCompleted ? '✓' : index + 1}
+                  {isCompleted ? (
+                    <CheckCircle className="h-6 w-6" />
+                  ) : (
+                    <IconComponent className="h-5 w-5" />
+                  )}
                 </div>
-                <div className="mt-2 text-center">
-                  <div className={`text-sm font-medium ${
-                    isCompleted ? 'text-green-600' : isCurrent ? 'text-blue-600' : 'text-gray-500'
+                <div className="mt-3 text-center">
+                  <div className={`text-sm font-semibold ${
+                    isCompleted 
+                      ? 'text-green-600 dark:text-green-400' 
+                      : isCurrent 
+                        ? 'text-purple-600 dark:text-purple-400' 
+                        : 'text-gray-500 dark:text-gray-400'
                   }`}>
                     {stepItem.name}
                   </div>
                   {isCompleted && (
-                    <div className="text-xs text-green-600 mt-1">Verified</div>
+                    <div className="text-xs text-green-600 dark:text-green-400 mt-1 font-medium">Verified</div>
                   )}
                 </div>
               </div>
             );
           })}
-          {/* Connection lines */}
-          <div className="absolute top-5 left-0 right-0 h-0.5 bg-gray-200 -z-10" />
+          
+          {/* Enhanced Connection lines */}
+          <div className="absolute top-6 left-0 right-0 h-1 bg-gray-200 dark:bg-slate-600 rounded-full -z-10" />
           {steps.map((stepItem, index) => {
             const isCompleted = verificationStatus[stepItem.key as keyof VerificationStatus];
             if (index < steps.length - 1 && isCompleted) {
               return (
                 <div
                   key={`line-${index}`}
-                  className="absolute top-5 h-0.5 bg-green-500 -z-10"
+                  className="absolute top-6 h-1 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full -z-10 transition-all duration-500"
                   style={{
                     left: `${(index / (steps.length - 1)) * 100}%`,
                     width: `${100 / (steps.length - 1)}%`
@@ -148,34 +159,51 @@ const SignupPage = () => {
     }
   };
 
-  // Helper function to render error messages with actions
+  // Enhanced error message renderer
   const renderErrorMessage = (errorMsg: string) => {
     if (errorMsg.includes('already registered') && errorMsg.includes('Please login')) {
       return (
-        <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-          <p className="mb-2">{errorMsg}</p>
-          <button
-            onClick={() => navigate('/login')}
-            className="text-sm bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition-colors"
-          >
-            Go to Login
-          </button>
+        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-2xl">
+          <div className="flex items-start space-x-3">
+            <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span className="text-white text-sm">!</span>
+            </div>
+            <div className="flex-1">
+              <p className="text-red-700 dark:text-red-300 text-sm font-medium mb-3">{errorMsg}</p>
+              <button
+                onClick={() => navigate('/login')}
+                className="px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors text-sm font-medium"
+              >
+                Go to Login
+              </button>
+            </div>
+          </div>
         </div>
       );
     }
     
     if (errorMsg.includes('pending activation')) {
       return (
-        <div className="mb-4 bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded">
-          <p className="mb-2">{errorMsg}</p>
-          <p className="text-sm text-yellow-600">Please contact support if you need assistance.</p>
+        <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-2xl">
+          <div className="flex items-start space-x-3">
+            <div className="w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span className="text-white text-sm">⏳</span>
+            </div>
+            <div>
+              <p className="text-yellow-700 dark:text-yellow-300 text-sm font-medium mb-2">{errorMsg}</p>
+              <p className="text-yellow-600 dark:text-yellow-400 text-sm">Please contact support if you need assistance.</p>
+            </div>
+          </div>
         </div>
       );
     }
     
     return (
-      <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-        {errorMsg}
+      <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-2xl">
+        <div className="flex items-center space-x-2">
+          <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+          <span className="text-red-700 dark:text-red-300 text-sm font-medium">{errorMsg}</span>
+        </div>
       </div>
     );
   };
@@ -730,42 +758,188 @@ const SignupPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h1 className="text-center text-3xl font-extrabold text-gray-900 mb-8">
-          Create Your Account
-        </h1>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-slate-900 dark:via-blue-900/20 dark:to-purple-900/20 flex">
+      {/* Left Side - Branding */}
+      <div className="hidden lg:flex lg:w-2/5 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-600 to-blue-600"></div>
+        <div className="absolute inset-0 bg-black/20"></div>
+        
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0">
+          <div className="absolute top-16 left-16 w-24 h-24 bg-white/10 rounded-full blur-xl animate-pulse"></div>
+          <div className="absolute bottom-32 right-16 w-32 h-32 bg-white/5 rounded-full blur-2xl animate-pulse delay-1000"></div>
+          <div className="absolute top-1/3 left-1/4 w-16 h-16 bg-white/10 rounded-full blur-lg animate-pulse delay-500"></div>
+        </div>
+
+        <div className="relative z-10 flex flex-col justify-center px-10 text-white">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+          >
+            <div className="mb-8">
+              <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center mb-6 shadow-2xl">
+                <Star className="h-8 w-8 text-white" />
+              </div>
+              <h1 className="text-4xl font-bold mb-4 leading-tight">
+                Join the Future of
+                <span className="block bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">
+                  Smart Trading
+                </span>
+              </h1>
+              <p className="text-lg text-purple-100 mb-8 leading-relaxed">
+                Create your account and start learning professional stock market trading with comprehensive courses and expert guidance
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
+                  <CheckCircle className="h-4 w-4 text-white" />
+                </div>
+                <span className="text-purple-100">Zero account opening charges</span>
+              </div>
+              
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
+                  <CheckCircle className="h-4 w-4 text-white" />
+                </div>
+                <span className="text-purple-100">Instant account activation</span>
+              </div>
+              
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
+                  <CheckCircle className="h-4 w-4 text-white" />
+                </div>
+                <span className="text-purple-100">24/7 customer support</span>
+              </div>
+            </div>
+
+            <div className="mt-10 p-4 bg-white/10 backdrop-blur-md rounded-xl border border-white/20">
+              <div className="text-center mb-4">
+                <div className="text-lg font-bold mb-1 text-white">Master Stock Market Trading</div>
+                <div className="text-sm text-purple-100">Learn from industry experts and build wealth</div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center">
+                    <span className="text-white text-xs">📈</span>
+                  </div>
+                  <span className="text-purple-100 text-sm">Live Market Analysis</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center">
+                    <span className="text-white text-xs">🎓</span>
+                  </div>
+                  <span className="text-purple-100 text-sm">Expert-Led Courses</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center">
+                    <span className="text-white text-xs">💰</span>
+                  </div>
+                  <span className="text-purple-100 text-sm">Wealth Building Strategies</span>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
       </div>
 
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          {/* Progress Indicator - only show if not on final step */}
-          {step < 7 && <ProgressIndicator />}
-
-          {error && renderErrorMessage(error)}
-
-          {success && (
-            <div className="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
-              {success}
+      {/* Right Side - Signup Form */}
+      <div className="w-full lg:w-3/5 flex items-center justify-center p-6">
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="w-full max-w-lg"
+        >
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div className="lg:hidden mb-6">
+              <div className="w-16 h-16 bg-gradient-to-br from-purple-600 to-blue-600 rounded-3xl flex items-center justify-center mx-auto shadow-xl">
+                <Star className="h-8 w-8 text-white" />
+              </div>
             </div>
-          )}
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+              Create Your Account
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400">
+              Start your trading journey in just a few steps
+            </p>
+          </div>
 
-          {renderStep()}
+          {/* Signup Form Card */}
+          <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md rounded-3xl shadow-2xl border border-gray-200/50 dark:border-slate-700/50 p-8">
+            {/* Progress Indicator - only show if not on final step */}
+            {step < 7 && <ProgressIndicator />}
 
+            {/* Error Message */}
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-6"
+              >
+                {renderErrorMessage(error)}
+              </motion.div>
+            )}
+
+            {/* Success Message */}
+            {success && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-2xl"
+              >
+                <div className="flex items-center space-x-2">
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                  <span className="text-green-700 dark:text-green-300 text-sm font-medium">{success}</span>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Form Content */}
+            <motion.div
+              key={step}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              {renderStep()}
+            </motion.div>
+
+            {/* Login Link */}
+            {step < 7 && (
+              <div className="mt-8 text-center">
+                <p className="text-gray-600 dark:text-gray-400">
+                  Already have an account?{' '}
+                  <button
+                    onClick={() => navigate('/login')}
+                    className="font-semibold text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors"
+                  >
+                    Sign In
+                  </button>
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
           {step < 7 && (
-            <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600">
-                Already have an account?{' '}
-                <button
-                  onClick={() => navigate('/login')}
-                  className="font-medium text-blue-600 hover:text-blue-500"
-                >
-                  Sign in
-                </button>
+            <div className="mt-8 text-center">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                By creating an account, you agree to our{' '}
+                <a href="/tnC" className="text-purple-600 dark:text-purple-400 hover:underline">
+                  Terms of Service
+                </a>{' '}
+                and{' '}
+                <a href="/privacy" className="text-purple-600 dark:text-purple-400 hover:underline">
+                  Privacy Policy
+                </a>
               </p>
             </div>
           )}
-        </div>
+        </motion.div>
       </div>
     </div>
   );

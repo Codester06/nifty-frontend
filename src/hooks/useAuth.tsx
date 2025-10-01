@@ -12,6 +12,7 @@ interface AuthContextType {
   superAdminLogin: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   updateUser: (updates: Partial<User>) => void;
+  refreshWalletBalance: () => Promise<void>;
   transactions: Transaction[];
   portfolio: Portfolio[];
   wishlist: WishlistItem[];
@@ -34,6 +35,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [portfolio, setPortfolio] = useState<Portfolio[]>([]);
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Function to refresh wallet balance from backend
+  const refreshWalletBalance = async () => {
+    const token = localStorage.getItem('nifty-bulk-token');
+    if (!token || !user) return;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/wallet`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const updatedUser = { ...user, walletBalance: data.balance };
+        setUser(updatedUser);
+        localStorage.setItem('nifty-bulk-user', JSON.stringify(updatedUser));
+      }
+    } catch (error) {
+      console.error('Failed to refresh wallet balance:', error);
+    }
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -66,6 +88,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     setLoading(false);
   }, []);
+
+  // Set up periodic wallet balance refresh for authenticated users
+  useEffect(() => {
+    if (!user || userRole === 'superadmin') return;
+
+    // Initial refresh after login
+    refreshWalletBalance();
+
+    // Set up interval to refresh every 30 seconds
+    const interval = setInterval(refreshWalletBalance, 30000);
+
+    return () => clearInterval(interval);
+  }, [user, userRole]);
 
   const login = async (mobile: string, otp: string): Promise<boolean> => {
     try {
@@ -223,6 +258,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUserRole(null);
     localStorage.removeItem('nifty-bulk-token');
     localStorage.removeItem('nifty-bulk-user');
+    
+    // Navigate to homepage and refresh the page
+    window.location.href = '/';
   };
 
   const updateUser = (updates: Partial<User>) => {
@@ -331,6 +369,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         superAdminLogin,
         logout,
         updateUser,
+        refreshWalletBalance,
         transactions,
         portfolio,
         wishlist,
