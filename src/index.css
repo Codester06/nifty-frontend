@@ -1,0 +1,157 @@
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/inter/700.css';
+@import '@fontsource/jetbrains-mono/400.css';
+@import '@fontsource/jetbrains-mono/500.css';
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+@layer base {
+  body {
+    @apply font-sans antialiased;
+  }
+
+  /* Professional Dark Mode - Enhanced colors */
+  body {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+    min-height: 100vh;
+  }
+
+  /* Professional Light Mode - Off-white/yellowish tone to reduce eye strain */
+  .light body {
+    background: linear-gradient(135deg, #fefcf8 0%, #f8fafc 50%, #f1f5f9 100%);
+  }
+}
+
+@layer components {
+  /* Professional Card Styling - Enhanced */
+  .professional-card {
+    @apply bg-white dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200;
+    backdrop-filter: blur(10px);
+  }
+
+  .light .professional-card {
+    @apply bg-white/90 border-gray-200 shadow-sm;
+  }
+
+  .dark .professional-card {
+    @apply bg-slate-800/80 border-slate-700/50 shadow-lg;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Professional Button Styling */
+  .professional-button {
+    @apply bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200;
+  }
+
+  .light .professional-button {
+    @apply bg-white border-gray-300 hover:bg-gray-50;
+  }
+
+  /* Professional Primary Button */
+  .professional-primary {
+    @apply bg-blue-600 hover:bg-blue-700 text-white border-blue-600 hover:border-blue-700 transition-colors duration-200;
+  }
+
+  /* Professional Text Styling */
+  .professional-text {
+    @apply text-gray-900 dark:text-gray-100 font-semibold;
+  }
+
+  .light .professional-text {
+    @apply text-gray-900;
+  }
+
+  /* Navbar Glass Effect - Enhanced */
+  .navbar-glass {
+    @apply backdrop-blur-md bg-white/95 dark:bg-slate-900/95 border-b border-gray-200 dark:border-slate-700/50;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  }
+
+  .dark .navbar-glass {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+  }
+
+  /* Background Pattern */
+  .bg-grid-pattern {
+    background-image: radial-gradient(circle, #e5e7eb 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+
+  .dark .bg-grid-pattern {
+    background-image: radial-gradient(circle, #374151 1px, transparent 1px);
+  }
+
+  /* Enhanced Card Styles */
+  .professional-card {
+    @apply bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-gray-200/50 dark:border-slate-700/50;
+  }
+
+  .professional-button {
+    @apply bg-white/10 dark:bg-slate-800/50 backdrop-blur-md border border-gray-200/30 dark:border-slate-700/30;
+  }
+
+  /* Navbar Glass Effect */
+  .navbar-glass {
+    @apply bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-gray-200/50 dark:border-slate-700/50;
+  }
+
+  /* Enhanced Shadows */
+  .shadow-professional {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+
+  .shadow-professional-md {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  }
+
+  .shadow-professional-lg {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+
+  /* Dark mode shadows */
+  .dark .shadow-professional {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  }
+
+  .dark .shadow-professional-md {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+  }
+
+  .dark .shadow-professional-lg {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Animations */
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .gradient-bg {
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+  }
+  
+  .light .gradient-bg {
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+  }
+  
+  .navbar-glass {
+    @apply backdrop-blur-xl bg-white/5 dark:bg-black/20 border-b border-white/10 dark:border-white/10;
+  }
+  
+  .light .navbar-glass {
+    @apply bg-white/95 border-gray-200/80;
+  }
+}
