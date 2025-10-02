@@ -1,3 +1,6 @@
+import { marketDataService } from './marketDataService';
+import { MarketUpdate } from '../types';
+
 // Real company data for Nifty 50 stocks
 export interface CompanyData {
   symbol: string;
@@ -18,6 +21,15 @@ export interface CompanyData {
     threeMonths: number;
     oneYear: number;
   };
+}
+
+// Enhanced company data with real-time price information
+export interface EnhancedCompanyData extends CompanyData {
+  currentPrice?: number;
+  change?: number;
+  changePercent?: number;
+  volume?: number;
+  lastUpdated?: Date;
 }
 
 const companyDatabase: Record<string, CompanyData> = {
@@ -196,4 +208,69 @@ export const getCompanyData = (symbol: string, name: string): CompanyData => {
 
 export const getAllCompanySymbols = (): string[] => {
   return Object.keys(companyDatabase);
+};
+
+/**
+ * Get enhanced company data with real-time price information
+ */
+export const getEnhancedCompanyData = (symbol: string, name: string): EnhancedCompanyData => {
+  const baseData = getCompanyData(symbol, name);
+  const priceData = marketDataService.getCurrentPrice(symbol);
+  
+  return {
+    ...baseData,
+    currentPrice: priceData?.price,
+    change: priceData?.change,
+    changePercent: priceData?.changePercent,
+    volume: priceData?.volume,
+    lastUpdated: priceData?.timestamp
+  };
+};
+
+/**
+ * Subscribe to real-time price updates for a company
+ */
+export const subscribeToCompanyPriceUpdates = (
+  symbol: string,
+  callback: (data: EnhancedCompanyData) => void
+): string => {
+  const baseData = getCompanyData(symbol, symbol);
+  
+  return marketDataService.subscribeToStockPrices([symbol], (updates: MarketUpdate[]) => {
+    const update = updates.find(u => u.symbol === symbol);
+    if (update) {
+      const enhancedData: EnhancedCompanyData = {
+        ...baseData,
+        currentPrice: update.price,
+        change: update.change,
+        changePercent: update.changePercent,
+        volume: update.volume,
+        lastUpdated: update.timestamp
+      };
+      callback(enhancedData);
+    }
+  });
+};
+
+/**
+ * Unsubscribe from company price updates
+ */
+export const unsubscribeFromCompanyPriceUpdates = (subscriptionId: string): void => {
+  marketDataService.unsubscribe(subscriptionId);
+};
+
+/**
+ * Get real-time market data service connection status
+ */
+export const getMarketDataConnectionStatus = (): string => {
+  return marketDataService.getConnectionStatus();
+};
+
+/**
+ * Subscribe to market data connection status changes
+ */
+export const onMarketDataConnectionStatusChange = (
+  callback: (status: string) => void
+): (() => void) => {
+  return marketDataService.onConnectionStatusChange(callback);
 };

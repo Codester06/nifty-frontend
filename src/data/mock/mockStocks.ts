@@ -1,4 +1,4 @@
-import { Stock } from "../types/types";
+import { Stock } from "@/shared/types";
 
 // Live price simulation
 let priceUpdateInterval: number | null = null;

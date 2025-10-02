@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, Transaction, Portfolio, WishlistItem } from '@/shared/types/types';
+import { User, Transaction, Portfolio, WishlistItem, CoinTransaction } from '@/shared/types';
+import { coinService } from '@/shared/services';
 import { mockStocks } from '@/data/mock/mockStocks';
 
 interface AuthContextType {
@@ -7,12 +8,19 @@ interface AuthContextType {
   isAuthenticated: boolean;
   userRole: 'user' | 'admin' | 'superadmin' | null;
   loading: boolean;
+  coinBalance: number;
+  coinLoading: boolean;
   login: (mobile: string, otp: string) => Promise<boolean>;
   loginEmail: (email: string, password: string) => Promise<boolean>;
   superAdminLogin: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   updateUser: (updates: Partial<User>) => void;
   refreshWalletBalance: () => Promise<void>;
+  refreshCoinBalance: () => Promise<void>;
+  updateCoinBalance: (newBalance: number) => void;
+  deductCoins: (amount: number, reason: string, relatedTradeId?: string) => Promise<boolean>;
+  addCoins: (amount: number, reason: string, relatedTradeId?: string) => Promise<boolean>;
+  validateSufficientCoins: (amount: number) => Promise<boolean>;
   transactions: Transaction[];
   portfolio: Portfolio[];
   wishlist: WishlistItem[];
@@ -31,6 +39,8 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [userRole, setUserRole] = useState<'user' | 'admin' | 'superadmin' | null>(null);
+  const [coinBalance, setCoinBalance] = useState<number>(0);
+  const [coinLoading, setCoinLoading] = useState<boolean>(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [portfolio, setPortfolio] = useState<Portfolio[]>([]);
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
@@ -57,6 +67,95 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Function to refresh coin balance from backend
+  const refreshCoinBalance = async () => {
+    if (!user) return;
+
+    setCoinLoading(true);
+    try {
+      // Temporarily disable API call to prevent HTML response error
+      console.log('Coin balance refresh disabled - API not available');
+      setCoinBalance(user.coinBalance || 0);
+    } catch (error) {
+      console.error('Failed to refresh coin balance:', error);
+    } finally {
+      setCoinLoading(false);
+    }
+  };
+
+  // Function to update coin balance locally (for immediate UI updates)
+  const updateCoinBalance = (newBalance: number) => {
+    setCoinBalance(newBalance);
+    if (user) {
+      const updatedUser = { ...user, coinBalance: newBalance };
+      setUser(updatedUser);
+      localStorage.setItem('nifty-bulk-user', JSON.stringify(updatedUser));
+    }
+  };
+
+  // Function to deduct coins
+  const deductCoins = async (amount: number, reason: string, relatedTradeId?: string): Promise<boolean> => {
+    if (!user) return false;
+
+    try {
+      const result = await coinService.deductCoins({
+        userId: user.id,
+        amount,
+        reason,
+        relatedTradeId
+      });
+
+      if (result.success) {
+        updateCoinBalance(result.newBalance);
+        return true;
+      } else {
+        console.error('Failed to deduct coins:', result.error?.message);
+        return false;
+      }
+    } catch (error) {
+      console.error('Failed to deduct coins:', error);
+      return false;
+    }
+  };
+
+  // Function to add coins
+  const addCoins = async (amount: number, reason: string, relatedTradeId?: string): Promise<boolean> => {
+    if (!user) return false;
+
+    try {
+      const result = await coinService.addCoins({
+        userId: user.id,
+        amount,
+        reason,
+        relatedTradeId
+      });
+
+      if (result.success) {
+        updateCoinBalance(result.newBalance);
+        return true;
+      } else {
+        console.error('Failed to add coins:', result.error?.message);
+        return false;
+      }
+    } catch (error) {
+      console.error('Failed to add coins:', error);
+      return false;
+    }
+  };
+
+  // Function to validate sufficient coin balance
+  const validateSufficientCoins = async (amount: number): Promise<boolean> => {
+    if (!user) return false;
+
+    try {
+      const result = await coinService.validateSufficientBalance(user.id, amount);
+      return result.success && result.data?.hasSufficientBalance === true;
+    } catch (error) {
+      console.error('Failed to validate coin balance:', error);
+      return false;
+    }
+  };
+
   useEffect(() => {
     setLoading(true);
     const token = localStorage.getItem('nifty-bulk-token');
@@ -70,6 +169,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const userData = JSON.parse(savedUser);
         setUser(userData);
         setUserRole(userData.role || 'user');
+        // Initialize coin balance from saved user data
+        setCoinBalance(userData.coinBalance || 0);
       } catch (error) {
         console.error('Error parsing saved user:', error);
         localStorage.removeItem('nifty-bulk-token');
@@ -89,17 +190,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(false);
   }, []);
 
-  // Set up periodic wallet balance refresh for authenticated users
+  // Set up periodic wallet and coin balance refresh for authenticated users
   useEffect(() => {
     if (!user || userRole === 'superadmin') return;
 
     // Initial refresh after login
     refreshWalletBalance();
+    refreshCoinBalance();
 
     // Set up interval to refresh every 30 seconds
-    const interval = setInterval(refreshWalletBalance, 30000);
+    const walletInterval = setInterval(refreshWalletBalance, 30000);
+    const coinInterval = setInterval(refreshCoinBalance, 30000);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(walletInterval);
+      clearInterval(coinInterval);
+    };
   }, [user, userRole]);
 
   const login = async (mobile: string, otp: string): Promise<boolean> => {
@@ -151,6 +257,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.setItem('nifty-bulk-user', JSON.stringify(userData));
         setUser(userData);
         setUserRole(payload.role || 'user');
+        setCoinBalance(userData.coinBalance || 0);
         return true;
       }
       return false;
@@ -206,6 +313,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.setItem('nifty-bulk-user', JSON.stringify(userData));
         setUser(userData);
         setUserRole(payload.role || 'user');
+        setCoinBalance(userData.coinBalance || 0);
         return true;
       }
       return false;
@@ -244,6 +352,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         setUser(userData);
         setUserRole('superadmin');
+        setCoinBalance(userData.coinBalance || 0);
         return true;
       }
       return false;
@@ -256,6 +365,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = () => {
     setUser(null);
     setUserRole(null);
+    setCoinBalance(0);
     localStorage.removeItem('nifty-bulk-token');
     localStorage.removeItem('nifty-bulk-user');
     
@@ -364,12 +474,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isAuthenticated: !!user,
         userRole,
         loading,
+        coinBalance,
+        coinLoading,
         login,
         loginEmail,
         superAdminLogin,
         logout,
         updateUser,
         refreshWalletBalance,
+        refreshCoinBalance,
+        updateCoinBalance,
+        deductCoins,
+        addCoins,
+        validateSufficientCoins,
         transactions,
         portfolio,
         wishlist,

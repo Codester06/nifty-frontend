@@ -14,8 +14,18 @@ const TransactionsPage = () => {
   const filteredTransactions = transactions
     .filter(transaction => {
       const matchesSearch = transaction.stockName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                           transaction.type.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesFilter = filterType === 'all' || transaction.type === filterType;
+                           transaction.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (transaction.instrumentType === 'option' && transaction.optionDetails?.strike?.toString().includes(searchTerm));
+      
+      let matchesFilter = true;
+      if (filterType === 'stock') {
+        matchesFilter = transaction.instrumentType === 'stock' || !transaction.instrumentType;
+      } else if (filterType === 'option') {
+        matchesFilter = transaction.instrumentType === 'option';
+      } else if (filterType !== 'all') {
+        matchesFilter = transaction.type === filterType;
+      }
+      
       return matchesSearch && matchesFilter;
     })
     .sort((a, b) => {
@@ -61,8 +71,12 @@ const TransactionsPage = () => {
     }
   };
 
-  const getTransactionTitle = (type: string) => {
-    switch (type) {
+  const getTransactionTitle = (transaction: any) => {
+    if (transaction.instrumentType === 'option') {
+      return transaction.type === 'buy' ? 'Options Purchase' : 'Options Sale';
+    }
+    
+    switch (transaction.type) {
       case 'buy':
         return 'Stock Purchase';
       case 'sell':
@@ -132,6 +146,8 @@ const TransactionsPage = () => {
                 <option value="all">All Types</option>
                 <option value="buy">Purchases</option>
                 <option value="sell">Sales</option>
+                <option value="stock">Stocks Only</option>
+                <option value="option">Options Only</option>
                 <option value="add_funds">Deposits</option>
                 <option value="withdraw">Withdrawals</option>
               </select>
@@ -208,7 +224,7 @@ const TransactionsPage = () => {
                       <div>
                         <div className="flex items-center space-x-2">
                           <h4 className="font-semibold text-gray-900 dark:text-white">
-                            {getTransactionTitle(transaction.type)}
+                            {getTransactionTitle(transaction)}
                           </h4>
                           {index < 3 && (
                             <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-medium rounded-full">
@@ -217,7 +233,12 @@ const TransactionsPage = () => {
                           )}
                         </div>
                         <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                          {transaction.stockName && (
+                          {transaction.instrumentType === 'option' && transaction.optionDetails ? (
+                            <span className="font-medium">
+                              {transaction.stockName} {transaction.optionDetails.strike} {transaction.optionDetails.optionType} • 
+                              Premium: ₹{transaction.optionDetails.premium} • 
+                            </span>
+                          ) : transaction.stockName && (
                             <span className="font-medium">{transaction.stockName} • </span>
                           )}
                           {new Date(transaction.timestamp).toLocaleDateString('en-IN', {
@@ -240,10 +261,13 @@ const TransactionsPage = () => {
                         {transaction.type === 'buy' || transaction.type === 'withdraw' ? '-' : '+'}₹{transaction.amount.toLocaleString()}
                       </p>
                       <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {transaction.type === 'buy' && transaction.quantity && (
+                        {transaction.instrumentType === 'option' && transaction.quantity && (
+                          <span>{transaction.quantity} lots</span>
+                        )}
+                        {transaction.instrumentType !== 'option' && transaction.type === 'buy' && transaction.quantity && (
                           <span>{transaction.quantity} shares</span>
                         )}
-                        {transaction.type === 'sell' && transaction.quantity && (
+                        {transaction.instrumentType !== 'option' && transaction.type === 'sell' && transaction.quantity && (
                           <span>{transaction.quantity} shares</span>
                         )}
                       </p>

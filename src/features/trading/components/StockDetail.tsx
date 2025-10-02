@@ -2,31 +2,57 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, TrendingUp, TrendingDown, BarChart3, Heart, Lock, Calendar, Building, Users, DollarSign, Activity, Volume2, Target, AlertCircle, Maximize2 } from 'lucide-react';
 import { mockStocks } from '@/data/mock/mockStocks';
-import { Stock } from '@/shared/types/types';
+import { Stock } from '@/shared/types';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { getCompanyData, CompanyData } from '@/shared/services/companyDataService';
 import { StockChart } from '@/components/charts';
 
 const StockDetail = () => {
+  console.log('StockDetail component mounted');
+  
   const { symbol } = useParams<{ symbol: string }>();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const [stock, setStock] = useState<Stock | null>(null);
   const [companyData, setCompanyData] = useState<CompanyData | null>(null);
   const [isWishlisted, setIsWishlisted] = useState(false);
+  
+  console.log('StockDetail - symbol:', symbol, 'isAuthenticated:', isAuthenticated);
 
   useEffect(() => {
-    const foundStock = mockStocks.find(s => s.symbol === symbol);
-    if (foundStock) {
-      setStock(foundStock);
-      // Get real company data
-      const realCompanyData = getCompanyData(foundStock.symbol, foundStock.name);
-      setCompanyData(realCompanyData);
-      // Check if stock is in wishlist (simulate with localStorage)
-      const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
-      setIsWishlisted(wishlist.includes(symbol));
-    } else {
-      navigate('/');
+    console.log('StockDetail useEffect triggered, symbol:', symbol);
+    
+    try {
+      const foundStock = mockStocks.find(s => s.symbol === symbol);
+      console.log('Found stock:', foundStock);
+      
+      if (foundStock) {
+        setStock(foundStock);
+        console.log('Stock set successfully');
+        
+        // Get real company data
+        try {
+          const realCompanyData = getCompanyData(foundStock.symbol, foundStock.name);
+          console.log('Company data retrieved:', realCompanyData);
+          setCompanyData(realCompanyData);
+        } catch (error) {
+          console.error('Error getting company data:', error);
+        }
+        
+        // Check if stock is in wishlist (simulate with localStorage)
+        try {
+          const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+          setIsWishlisted(wishlist.includes(symbol));
+          console.log('Wishlist status set');
+        } catch (error) {
+          console.error('Error checking wishlist:', error);
+        }
+      } else {
+        console.log('Stock not found, navigating to home');
+        navigate('/');
+      }
+    } catch (error) {
+      console.error('Error in StockDetail useEffect:', error);
     }
   }, [symbol, navigate]);
 
@@ -49,12 +75,18 @@ const StockDetail = () => {
     setIsWishlisted(!isWishlisted);
   };
 
+  console.log('StockDetail render - stock:', !!stock, 'companyData:', !!companyData);
+
   if (!stock || !companyData) {
+    console.log('StockDetail showing loading state');
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600 dark:text-gray-400">Loading stock details...</p>
+          <p className="text-xs text-gray-500 mt-2">
+            Stock: {stock ? 'loaded' : 'loading'}, Company Data: {companyData ? 'loaded' : 'loading'}
+          </p>
         </div>
       </div>
     );

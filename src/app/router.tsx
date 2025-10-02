@@ -16,12 +16,14 @@ import SignupPage from "@/pages/auth/SignupPage";
 // Dashboard pages
 import Dashboard from "@/pages/dashboard/Dashboard";
 import WishlistPage from "@/pages/dashboard/WishlistPage";
+import PortfolioPage from "@/pages/dashboard/PortfolioPage";
 import TransactionsPage from "@/pages/dashboard/TransactionsPage";
 import Profile from "@/pages/dashboard/Profile";
 
 // Admin pages
 import AdminDashboard from "@/features/admin/pages/AdminDashboard";
 import AdminUserManagement from "@/features/admin/pages/AdminUserManagement";
+import AdminCoinManagement from "@/features/admin/pages/AdminCoinManagement";
 import AdminMarginSettings from "@/features/admin/pages/AdminMarginSettings";
 import AdminSecurityLogs from "@/features/admin/pages/AdminSecurityLogs";
 import AdminTradingManagement from "@/features/admin/pages/AdminTradingManagement";
@@ -29,8 +31,13 @@ import NiftyBulkAdminDashboard from "@/features/admin/pages/MainAdmin";
 import SuperAdminLogin from "@/pages/auth/SuperAdminLogin";
 
 // Trading pages
-import StockDetail from "@/features/trading/components/StockDetail";
+import StockDetail from "@/pages/StockDetail";
+import TestStockDetail from "@/pages/TestStockDetail";
+import SimpleTest from "@/pages/SimpleTest";
+import MinimalStockDetail from "@/pages/MinimalStockDetail";
+import DebugStockDetail from "@/pages/DebugStockDetail";
 import StockGraphPage from "@/features/trading/pages/StockGraphPage";
+import OptionsPage from "@/pages/OptionsPage";
 
 // Legal pages
 import TermsAndConditions from "@/pages/legal/TermsConditions";
@@ -98,6 +105,7 @@ export function AppRoutes() {
         {/* Trading routes */}
         <Route path="/stock/:symbol" element={<StockDetail />} />
         <Route path="/stock/:symbol/chart" element={<StockGraphPage />} />
+        <Route path="/options" element={<OptionsPage />} />
 
         {/* Auto-redirect based on role */}
         <Route path="/dashboard" element={<RoleBasedRedirect />} />
@@ -109,6 +117,14 @@ export function AppRoutes() {
           element={
             <ProtectedRoute>
               <WishlistPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/user/portfolio"
+          element={
+            <ProtectedRoute>
+              <PortfolioPage />
             </ProtectedRoute>
           }
         />
@@ -143,6 +159,14 @@ export function AppRoutes() {
           element={
             <AdminRoute>
               <AdminUserManagement />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/coins"
+          element={
+            <AdminRoute>
+              <AdminCoinManagement />
             </AdminRoute>
           }
         />

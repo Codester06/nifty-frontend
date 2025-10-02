@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, Heart, Lock, Activity } from 'lucide-react';
-import { Stock } from '@/shared/types/types';
+import { Stock } from '@/shared/types';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { TradingModal } from '@/components/forms';
 

@@ -12,6 +12,10 @@ import {
   AlertTriangle,
   CheckCircle,
   Clock,
+  Coins,
+  Settings,
+  FileText,
+  ArrowRight,
 } from "lucide-react";
 import { 
   TrustMetrics, 
@@ -273,6 +277,80 @@ const AdminDashboard = () => {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto">
+        {/* Quick Navigation */}
+        <div className="p-6 pb-0">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-100 dark:border-slate-700 p-6">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+              Quick Actions
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <button
+                onClick={() => navigate('/admin/users')}
+                className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-xl transition-colors group"
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+                    <Users className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="text-left">
+                    <div className="font-medium text-gray-900 dark:text-white">User Management</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">Manage users</div>
+                  </div>
+                </div>
+                <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-blue-500 transition-colors" />
+              </button>
+
+              <button
+                onClick={() => navigate('/admin/coins')}
+                className="flex items-center justify-between p-4 bg-yellow-50 dark:bg-yellow-900/20 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 rounded-xl transition-colors group"
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-yellow-500 rounded-lg flex items-center justify-center">
+                    <Coins className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="text-left">
+                    <div className="font-medium text-gray-900 dark:text-white">Coin Management</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">Manage user coins</div>
+                  </div>
+                </div>
+                <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-yellow-500 transition-colors" />
+              </button>
+
+              <button
+                onClick={() => navigate('/admin/trading')}
+                className="flex items-center justify-between p-4 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-xl transition-colors group"
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
+                    <BarChart3 className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="text-left">
+                    <div className="font-medium text-gray-900 dark:text-white">Trading Management</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">Monitor trades</div>
+                  </div>
+                </div>
+                <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-green-500 transition-colors" />
+              </button>
+
+              <button
+                onClick={() => navigate('/admin/security-logs')}
+                className="flex items-center justify-between p-4 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-xl transition-colors group"
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-red-500 rounded-lg flex items-center justify-center">
+                    <Shield className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="text-left">
+                    <div className="font-medium text-gray-900 dark:text-white">Security Logs</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">View security logs</div>
+                  </div>
+                </div>
+                <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-red-500 transition-colors" />
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* Dashboard Content */}
         <div className="p-6 space-y-6">
           {dashboardData.error && (

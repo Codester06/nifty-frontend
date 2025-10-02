@@ -3,7 +3,7 @@ import { Heart, TrendingUp, TrendingDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { startLivePriceUpdates, mockStocks } from '@/data/mock/mockStocks';
-import { Stock } from '../types/types';
+import { Stock } from '@/shared/types';
 
 const WishlistPage = () => {
   const { isAuthenticated } = useAuth();

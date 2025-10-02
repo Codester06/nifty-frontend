@@ -1,3 +1,5 @@
+import type { OptionsOrder, OptionsPosition, OptionChainData, OptionGreeks, TradeResponse } from '../types';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api';
 
 class ApiService {
@@ -285,6 +287,186 @@ class ApiService {
     const response = await fetch(`${API_BASE_URL}/users/admin/recent-activities`, {
       method: 'GET',
       headers: this.getHeaders(),
+    });
+    return this.handleResponse(response);
+  }
+
+  // Options data methods
+  async getOptionChain(underlying: string, expiry?: string) {
+    const url = new URL(`${API_BASE_URL}/options/chain/${underlying}`);
+    if (expiry) {
+      url.searchParams.append('expiry', expiry);
+    }
+    
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: this.getHeaders(),
+    });
+    return this.handleResponse(response);
+  }
+
+  async getOptionGreeks(symbol: string, strike: number, expiry: string) {
+    const response = await fetch(`${API_BASE_URL}/options/greeks`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ symbol, strike, expiry }),
+    });
+    return this.handleResponse(response);
+  }
+
+  async subscribeToOptionsUpdates(symbols: string[], callback: Function) {
+    // This would typically establish a WebSocket connection
+    // For now, we'll implement a polling mechanism
+    const pollInterval = setInterval(async () => {
+      try {
+        for (const symbol of symbols) {
+          const response = await fetch(`${API_BASE_URL}/options/price/${symbol}`, {
+            method: 'GET',
+            headers: this.getHeaders(),
+          });
+          const data = await this.handleResponse(response);
+          callback(symbol, data);
+        }
+      } catch (error) {
+        console.error('Error polling options updates:', error);
+      }
+    }, 2000); // Poll every 2 seconds
+
+    // Return cleanup function
+    return () => clearInterval(pollInterval);
+  }
+
+  // Options trading methods
+  async placeOptionsOrder(order: {
+    userId: string;
+    symbol: string;
+    optionType: 'CE' | 'PE';
+    strike: number;
+    expiry: string;
+    action: 'BUY' | 'SELL';
+    quantity: number;
+    orderType: 'MARKET' | 'LIMIT';
+    price?: number;
+    premium: number;
+    totalCost: number;
+  }) {
+    const response = await fetch(`${API_BASE_URL}/options/order`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(order),
+    });
+    return this.handleResponse(response);
+  }
+
+  async getOptionsPositions(userId: string) {
+    const response = await fetch(`${API_BASE_URL}/options/positions/${userId}`, {
+      method: 'GET',
+      headers: this.getHeaders(),
+    });
+    return this.handleResponse(response);
+  }
+
+  async closeOptionsPosition(positionId: string) {
+    const response = await fetch(`${API_BASE_URL}/options/position/${positionId}/close`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+    });
+    return this.handleResponse(response);
+  }
+
+  // Options portfolio and analytics
+  async getOptionsPortfolio(userId: string) {
+    const response = await fetch(`${API_BASE_URL}/options/portfolio/${userId}`, {
+      method: 'GET',
+      headers: this.getHeaders(),
+    });
+    return this.handleResponse(response);
+  }
+
+  async getOptionsTransactionHistory(userId: string, limit?: number, offset?: number) {
+    const url = new URL(`${API_BASE_URL}/options/transactions/${userId}`);
+    if (limit) url.searchParams.append('limit', limit.toString());
+    if (offset) url.searchParams.append('offset', offset.toString());
+    
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: this.getHeaders(),
+    });
+    return this.handleResponse(response);
+  }
+
+  // Options market data
+  async getOptionsMarketStatus() {
+    const response = await fetch(`${API_BASE_URL}/options/market/status`, {
+      method: 'GET',
+      headers: this.getHeaders(),
+    });
+    return this.handleResponse(response);
+  }
+
+  async getUnderlyingAssets() {
+    const response = await fetch(`${API_BASE_URL}/options/underlying`, {
+      method: 'GET',
+      headers: this.getHeaders(),
+    });
+    return this.handleResponse(response);
+  }
+
+  // Options risk management
+  async validateOptionsOrder(order: {
+    userId: string;
+    symbol: string;
+    optionType: 'CE' | 'PE';
+    strike: number;
+    expiry: string;
+    action: 'BUY' | 'SELL';
+    quantity: number;
+    premium: number;
+    totalCost: number;
+  }) {
+    const response = await fetch(`${API_BASE_URL}/options/order/validate`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(order),
+    });
+    return this.handleResponse(response);
+  }
+
+  // Coin management endpoints
+  async getUserCoinBalance(userId: string) {
+    const response = await fetch(`${API_BASE_URL}/coins/balance/${userId}`, {
+      method: 'GET',
+      headers: this.getHeaders(),
+    });
+    return this.handleResponse(response);
+  }
+
+  async updateUserCoinBalance(userId: string, amount: number, type: 'DEBIT' | 'CREDIT', reason: string) {
+    const response = await fetch(`${API_BASE_URL}/coins/${type.toLowerCase()}`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ userId, amount, reason }),
+    });
+    return this.handleResponse(response);
+  }
+
+  async getCoinTransactionHistory(userId: string, limit?: number, offset?: number) {
+    const url = new URL(`${API_BASE_URL}/coins/transactions/${userId}`);
+    if (limit) url.searchParams.append('limit', limit.toString());
+    if (offset) url.searchParams.append('offset', offset.toString());
+    
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: this.getHeaders(),
+    });
+    return this.handleResponse(response);
+  }
+
+  async purchaseCoins(userId: string, amount: number, paymentMethod: string, paymentDetails: any) {
+    const response = await fetch(`${API_BASE_URL}/coins/purchase`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ userId, amount, paymentMethod, paymentDetails }),
     });
     return this.handleResponse(response);
   }

@@ -13,7 +13,7 @@ import {
   Award,
 } from "lucide-react";
 import { mockStocks, startLivePriceUpdates } from "@/data/mock/mockStocks";
-import { Stock } from "@/shared/types/types";
+import { Stock } from "@/shared/types";
 import {
   TechnicalAnalysisWidget,
 } from "@/components/charts";

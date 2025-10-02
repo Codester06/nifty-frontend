@@ -20,6 +20,7 @@ import {
   Activity,
 } from "lucide-react";
 import { useAuth } from "@/shared/hooks/useAuth";
+import { useIsMobile, useIsTablet } from "@/shared/hooks/useMediaQuery";
 import ThemeToggle from "./ThemeToggle";
 import ProfileDropdown from "./ProfileDropdown";
 import { WalletModal } from "@/components/forms";
@@ -38,6 +39,8 @@ const Navbar = () => {
   const location = useLocation();
   const searchRef = useRef<HTMLDivElement>(null);
   const trendsRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
 
   // Close overlays when clicking outside
   useEffect(() => {
@@ -169,6 +172,7 @@ const Navbar = () => {
       icon: BarChart3,
     },
     { name: "Stocks", path: "/", icon: Home },
+    { name: "Portfolio", path: "/user/portfolio", icon: TrendingUp },
     { name: "Wishlist", path: "/user/wishlist", icon: Heart },
   ];
 
@@ -267,8 +271,8 @@ const Navbar = () => {
                 </button>
               )}
 
-              {/* Wallet for authenticated users */}
-              {isAuthenticated && userRole !== "superadmin" && (
+              {/* Wallet for authenticated users - Desktop */}
+              {isAuthenticated && userRole !== "superadmin" && !isMobile && (
                 <button
                   onClick={() => setIsWalletOpen(true)}
                   className="hidden sm:flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200/50 dark:border-green-700/50 rounded-xl hover:shadow-lg hover:shadow-green-500/20 transition-all duration-300 group"
@@ -279,6 +283,7 @@ const Navbar = () => {
                   </span>
                 </button>
               )}
+
 
               {/* Profile Dropdown for authenticated users */}
               {isAuthenticated && <ProfileDropdown />}
@@ -328,7 +333,7 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* Search Overlay */}
+        {/* Enhanced Search Overlay */}
         {isSearchOpen && (
           <div
             ref={searchRef}
@@ -341,8 +346,10 @@ const Navbar = () => {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
-                  placeholder="Search stocks, companies, or symbols..."
-                  className="w-full pl-10 pr-10 py-3 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 border border-gray-200/50 dark:border-gray-600/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300"
+                  placeholder={isMobile ? "Search stocks..." : "Search stocks, companies, or symbols..."}
+                  className={`w-full pl-10 pr-10 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 border border-gray-200/50 dark:border-gray-600/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300 ${
+                    isMobile ? 'py-4 text-base' : 'py-3'
+                  }`}
                   autoFocus
                 />
                 <button
@@ -351,40 +358,52 @@ const Navbar = () => {
                     setSearchQuery("");
                     setSearchResults([]);
                   }}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors duration-200"
+                  className={`absolute right-3 top-1/2 transform -translate-y-1/2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors duration-200 ${
+                    isMobile ? 'p-2' : 'p-1'
+                  }`}
                 >
-                  <X className="h-4 w-4 text-gray-400" />
+                  <X className={`text-gray-400 ${isMobile ? 'h-5 w-5' : 'h-4 w-4'}`} />
                 </button>
               </div>
 
-              {/* Search Results */}
+              {/* Enhanced Search Results */}
               {searchResults.length > 0 && (
-                <div className="mt-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg max-h-64 overflow-y-auto">
+                <div className={`mt-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg overflow-y-auto ${
+                  isMobile ? 'max-h-80' : 'max-h-64'
+                }`}>
                   {searchResults.map((stock) => (
                     <button
                       key={stock.symbol}
                       onClick={() => handleSearchResultClick(stock.symbol)}
-                      className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
+                      className={`w-full text-left hover:bg-gray-50 dark:hover:bg-gray-700 active:bg-gray-100 dark:active:bg-gray-600 transition-colors duration-200 border-b border-gray-100 dark:border-gray-700 last:border-b-0 ${
+                        isMobile ? 'px-4 py-4' : 'px-4 py-3'
+                      }`}
                     >
                       <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-semibold text-gray-900 dark:text-white">
+                        <div className="flex-1 min-w-0">
+                          <div className={`font-semibold text-gray-900 dark:text-white ${
+                            isMobile ? 'text-base' : 'text-sm'
+                          }`}>
                             {stock.symbol}
                           </div>
-                          <div className="text-sm text-gray-600 dark:text-gray-400">
+                          <div className={`text-gray-600 dark:text-gray-400 truncate ${
+                            isMobile ? 'text-sm' : 'text-xs'
+                          }`}>
                             {stock.name}
                           </div>
                         </div>
-                        <div className="text-right">
-                          <div className="font-semibold text-gray-900 dark:text-white">
+                        <div className="text-right ml-4">
+                          <div className={`font-semibold text-gray-900 dark:text-white ${
+                            isMobile ? 'text-base' : 'text-sm'
+                          }`}>
                             ₹{stock.price.toFixed(2)}
                           </div>
                           <div
-                            className={`text-sm ${
+                            className={`${
                               stock.change >= 0
                                 ? "text-green-600"
                                 : "text-red-600"
-                            }`}
+                            } ${isMobile ? 'text-sm' : 'text-xs'}`}
                           >
                             {stock.change >= 0 ? "+" : ""}
                             {stock.change}%
@@ -415,10 +434,14 @@ const Navbar = () => {
           </div>
         )}
 
-        {/* Market Trends Dropdown */}
+        {/* Enhanced Market Trends Dropdown */}
         {isTrendsOpen && (
-          <div className="absolute top-full right-4 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 max-h-[70vh] overflow-hidden">
-            <div ref={trendsRef} className="overflow-y-auto max-h-[70vh]">
+          <div className={`absolute top-full mt-2 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden ${
+            isMobile 
+              ? 'left-4 right-4 max-h-[80vh]' 
+              : 'right-4 w-80 max-h-[70vh]'
+          }`}>
+            <div ref={trendsRef} className={`overflow-y-auto ${isMobile ? 'max-h-[80vh]' : 'max-h-[70vh]'}`}>
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-orange-500 to-amber-500">
                 <div className="flex items-center space-x-2">
@@ -603,10 +626,38 @@ const Navbar = () => {
           </div>
         )}
 
-        {/* Mobile Navigation */}
+        {/* Enhanced Mobile Navigation */}
         {isMobileMenuOpen && (
           <div className="md:hidden border-t border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-b from-white/95 to-gray-50/95 dark:from-gray-900/95 dark:to-gray-800/95 backdrop-blur-xl">
             <div className="px-4 py-6 space-y-2">
+
+              {/* Mobile Search */}
+              <button
+                onClick={() => {
+                  setIsSearchOpen(true);
+                  setIsMobileMenuOpen(false);
+                }}
+                className="w-full flex items-center space-x-3 px-4 py-3.5 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100 dark:hover:from-gray-800 dark:hover:to-gray-700 transition-all duration-300 hover:shadow-md"
+              >
+                <Search className="h-5 w-5" />
+                <span>Search Stocks</span>
+              </button>
+
+              {/* Mobile Market Trends for authenticated users */}
+              {isAuthenticated && (
+                <button
+                  onClick={() => {
+                    setIsTrendsOpen(true);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full flex items-center space-x-3 px-4 py-3.5 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gradient-to-r hover:from-orange-50 hover:to-amber-50 dark:hover:from-orange-900/20 dark:hover:to-amber-900/20 transition-all duration-300 hover:shadow-md"
+                >
+                  <TrendingUp className="h-5 w-5" />
+                  <span>Market Trends</span>
+                </button>
+              )}
+
+              {/* Navigation Items */}
               {navItems.map((item) => (
                 <Link
                   key={item.name}
@@ -685,7 +736,7 @@ const Navbar = () => {
                     className="flex items-center space-x-3 px-4 py-3.5 rounded-xl text-sm font-medium bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 text-green-700 dark:text-green-300 hover:shadow-lg hover:shadow-green-500/20 transition-all duration-300 w-full border border-green-200/50 dark:border-green-700/50"
                   >
                     <Wallet className="h-5 w-5 text-green-600 dark:text-green-400" />
-                    <span>
+                    <span className="font-semibold">
                       Wallet: ₹{(user?.walletBalance ?? 0).toLocaleString()}
                     </span>
                   </button>
