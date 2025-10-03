@@ -1,7 +1,8 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, Transaction, Portfolio, WishlistItem, CoinTransaction } from '@/shared/types';
+import { User, Transaction, Portfolio, WishlistItem, Stock } from '@/shared/types';
 import { coinService } from '@/shared/services';
-import { mockStocks } from '@/data/mock/mockStocks';
+import { mockStocks, startLivePriceUpdates } from '@/data/mock/mockStocks';
+import { tradingService } from '@/features/trading/services/tradingService';
 
 interface AuthContextType {
   user: User | null;
@@ -14,6 +15,7 @@ interface AuthContextType {
   loginEmail: (email: string, password: string) => Promise<boolean>;
   superAdminLogin: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
+  logoutAllDevices: () => Promise<void>;
   updateUser: (updates: Partial<User>) => void;
   refreshWalletBalance: () => Promise<void>;
   refreshCoinBalance: () => Promise<void>;
@@ -29,12 +31,18 @@ interface AuthContextType {
   removeFromWishlist: (symbol: string) => void;
   isInWishlist: (symbol: string) => boolean;
   updatePortfolio: (symbol: string, quantity: number, price: number, type: 'buy' | 'sell') => void;
+  buyStock: (symbol: string, quantity: number, price: number) => Promise<void>;
+  sellStock: (symbol: string, quantity: number, price: number) => Promise<void>;
   shouldRedirectToAdminDashboard: () => boolean;
+  totalInvestment: number;
+  currentValue: number;
+  totalPnL: number;
+  pnlPercent: number;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -45,22 +53,148 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [portfolio, setPortfolio] = useState<Portfolio[]>([]);
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [liveStocks, setLiveStocks] = useState<Stock[]>([]);
+  const [totalInvestment, setTotalInvestment] = useState(0);
+  const [currentValue, setCurrentValue] = useState(0);
+  const [totalPnL, setTotalPnL] = useState(0);
+  const [pnlPercent, setPnlPercent] = useState(0);
+
+  // Session ID for concurrent login detection
+  const [sessionId, setSessionId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = startLivePriceUpdates(setLiveStocks);
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    const updatedPortfolio = portfolio.map(item => {
+      const liveStock = liveStocks.find(stock => stock.symbol === item.symbol);
+      return liveStock ? { ...item, currentPrice: liveStock.price } : item;
+    });
+
+    const newTotalInvestment = updatedPortfolio.reduce((sum, stock) => sum + (stock.quantity * stock.avgPrice), 0);
+    const newCurrentValue = updatedPortfolio.reduce((sum, stock) => sum + (stock.quantity * stock.currentPrice), 0);
+    const newTotalPnL = newCurrentValue - newTotalInvestment;
+    const newPnlPercent = newTotalInvestment > 0 ? (newTotalPnL / newTotalInvestment) * 100 : 0;
+
+    setTotalInvestment(newTotalInvestment);
+    setCurrentValue(newCurrentValue);
+    setTotalPnL(newTotalPnL);
+    setPnlPercent(newPnlPercent);
+  }, [portfolio, liveStocks]);
+
+  // Helper to decode JWT and get expiry
+  const decodeTokenExpiry = (token: string): number | null => {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (payload && payload.exp) {
+        return payload.exp * 1000; // convert to ms
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  // Generate a unique session ID
+  const generateSessionId = (): string => {
+    return Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+  };
+
+  // Save session ID to localStorage and state
+  const initializeSession = () => {
+    let existingSessionId = localStorage.getItem('nifty-bulk-session-id');
+    if (!existingSessionId) {
+      existingSessionId = generateSessionId();
+      localStorage.setItem('nifty-bulk-session-id', existingSessionId);
+    }
+    setSessionId(existingSessionId);
+  };
+
+  // Check for concurrent sessions by comparing session IDs
+  const checkConcurrentSession = () => {
+    const storedSessionId = localStorage.getItem('nifty-bulk-session-id');
+    if (sessionId && storedSessionId && sessionId !== storedSessionId) {
+      // Another session detected, logout current session
+      alert('You have been logged out because your account was logged in from another device.');
+      logout();
+    }
+  };
+
+  // Refresh token if close to expiry (within 5 minutes)
+  const refreshTokenIfNeeded = async () => {
+    const token = localStorage.getItem('nifty-bulk-token');
+    if (!token) return;
+
+    const expiry = decodeTokenExpiry(token);
+    if (!expiry) return;
+
+    const now = Date.now();
+    const fiveMinutes = 5 * 60 * 1000;
+
+    if (expiry - now < fiveMinutes) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/auth/token/refresh`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          const newToken = data.token;
+          localStorage.setItem('nifty-bulk-token', newToken);
+        } else {
+          // Token refresh failed, logout user
+          logout();
+        }
+      } catch (error) {
+        console.error('Token refresh error:', error);
+        logout();
+      }
+    }
+  };
+
+  // Call refreshTokenIfNeeded periodically
+  useEffect(() => {
+    if (!user) return;
+
+    const interval = setInterval(() => {
+      refreshTokenIfNeeded();
+      checkConcurrentSession();
+    }, 60 * 1000); // check every minute
+
+    return () => clearInterval(interval);
+  }, [user, sessionId]);
+
+  // Initialize session on load
+  useEffect(() => {
+    initializeSession();
+  }, []);
 
   // Function to refresh wallet balance from backend
   const refreshWalletBalance = async () => {
     const token = localStorage.getItem('nifty-bulk-token');
-    if (!token || !user) return;
+    if (!token || !user) {
+      console.log('refreshWalletBalance: No token or user');
+      return;
+    }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/users/wallet`, {
+      console.log('refreshWalletBalance: Fetching wallet balance with token', token);
+      const response = await fetch(`${API_BASE_URL}/coins/balance`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      
+
       if (response.ok) {
         const data = await response.json();
-        const updatedUser = { ...user, walletBalance: data.balance };
+        console.log('refreshWalletBalance: Received data', data);
+        const updatedUser = { ...user, walletBalance: data.data.balance };
         setUser(updatedUser);
         localStorage.setItem('nifty-bulk-user', JSON.stringify(updatedUser));
+      } else {
+        console.error('refreshWalletBalance: Response not ok', response.status);
       }
     } catch (error) {
       console.error('Failed to refresh wallet balance:', error);
@@ -198,9 +332,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     refreshWalletBalance();
     refreshCoinBalance();
 
-    // Set up interval to refresh every 30 seconds
-    const walletInterval = setInterval(refreshWalletBalance, 30000);
-    const coinInterval = setInterval(refreshCoinBalance, 30000);
+    // Set up interval to refresh every 5 seconds
+    const walletInterval = setInterval(refreshWalletBalance, 5000);
+    const coinInterval = setInterval(refreshCoinBalance, 5000);
 
     return () => {
       clearInterval(walletInterval);
@@ -220,10 +354,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (response.ok) {
         const data = await response.json();
-        const token = data.token;
-        
+        console.log('Login response data:', data);
+        const token = data.token || data.data?.token;
+
+        if (!token) {
+          console.error('No token received from server');
+          return false;
+        }
+
         // Decode JWT to get user info
-        const payload = JSON.parse(atob(token.split('.')[1]));
+        let payload;
+        try {
+          payload = JSON.parse(atob(token.split('.')[1]));
+        } catch (decodeError) {
+          console.error('Failed to decode token:', decodeError);
+          return false;
+        }
         // Fetch real user profile from backend
         let userData: User;
         try {
@@ -241,6 +387,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               email: payload.email,
               role: payload.role || 'user',
               walletBalance: payload.walletBalance ?? 0,
+              coinBalance: payload.coinBalance ?? 0,
+              totalCoinsEarned: payload.totalCoinsEarned ?? 0,
+              totalCoinsPurchased: payload.totalCoinsPurchased ?? 0,
             };
           }
         } catch {
@@ -251,6 +400,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           email: payload.email,
           role: payload.role || 'user',
             walletBalance: payload.walletBalance ?? 0,
+            coinBalance: payload.coinBalance ?? 0,
+            totalCoinsEarned: payload.totalCoinsEarned ?? 0,
+            totalCoinsPurchased: payload.totalCoinsPurchased ?? 0,
         };
         }
         localStorage.setItem('nifty-bulk-token', token);
@@ -298,6 +450,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               email,
               role: payload.role || 'user',
               walletBalance: payload.walletBalance ?? 0,
+              coinBalance: payload.coinBalance ?? 0,
+              totalCoinsEarned: payload.totalCoinsEarned ?? 0,
+              totalCoinsPurchased: payload.totalCoinsPurchased ?? 0,
             };
           }
         } catch {
@@ -307,6 +462,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           email,
           role: payload.role || 'user',
             walletBalance: payload.walletBalance ?? 0,
+            coinBalance: payload.coinBalance ?? 0,
+            totalCoinsEarned: payload.totalCoinsEarned ?? 0,
+            totalCoinsPurchased: payload.totalCoinsPurchased ?? 0,
         };
         }
         localStorage.setItem('nifty-bulk-token', token);
@@ -345,6 +503,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           email,
           role: 'superadmin',
           walletBalance: payload.walletBalance ?? 0,
+          coinBalance: payload.coinBalance ?? 0,
+          totalCoinsEarned: payload.totalCoinsEarned ?? 0,
+          totalCoinsPurchased: payload.totalCoinsPurchased ?? 0,
         };
 
         localStorage.setItem('nifty-bulk-token', token);
@@ -366,11 +527,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
     setUserRole(null);
     setCoinBalance(0);
+    setSessionId(null);
     localStorage.removeItem('nifty-bulk-token');
     localStorage.removeItem('nifty-bulk-user');
-    
+    localStorage.removeItem('nifty-bulk-session-id');
+
     // Navigate to homepage and refresh the page
     window.location.href = '/';
+  };
+
+  // Logout from all devices by invalidating session on backend
+  const logoutAllDevices = async () => {
+    const token = localStorage.getItem('nifty-bulk-token');
+    if (!token) return;
+
+    try {
+      await fetch(`${API_BASE_URL}/auth/logout-all`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+    } catch (error) {
+      console.error('Logout all devices error:', error);
+    }
+
+    // Clear local session and logout
+    logout();
   };
 
   const updateUser = (updates: Partial<User>) => {
@@ -407,28 +590,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let updatedPortfolio = [...portfolio];
 
     if (type === 'buy') {
-      if (existingStock) {
-        // Update existing position
-        const totalQuantity = existingStock.quantity + quantity;
-        const totalValue = (existingStock.quantity * existingStock.avgPrice) + (quantity * price);
-        const newAvgPrice = totalValue / totalQuantity;
-        
-        updatedPortfolio = updatedPortfolio.map(p =>
-          p.symbol === symbol
-            ? { ...p, quantity: totalQuantity, avgPrice: newAvgPrice, currentPrice: price }
-            : p
-        );
-      } else {
-        // Add new position
-        const stockData = mockStocks.find(s => s.symbol === symbol);
-        updatedPortfolio.push({
-          symbol,
-          name: stockData?.name || symbol,
-          quantity,
-          avgPrice: price,
-          currentPrice: price,
-        });
-      }
+        if (existingStock) {
+          // Update existing position
+          const totalQuantity = existingStock.quantity + quantity;
+          const totalValue = (existingStock.quantity * existingStock.avgPrice) + (quantity * price);
+          const newAvgPrice = totalValue / totalQuantity;
+          
+          updatedPortfolio = updatedPortfolio.map(p =>
+            p.symbol === symbol
+              ? { ...p, quantity: totalQuantity, avgPrice: newAvgPrice, currentPrice: price }
+              : p
+          );
+        } else {
+          // Add new position
+          const stockData = mockStocks.find(s => s.symbol === symbol);
+          updatedPortfolio.push({
+            symbol,
+            name: stockData?.name || symbol,
+            quantity,
+            avgPrice: price,
+            currentPrice: price,
+            instrumentType: 'stock',
+            coinInvested: 0,
+            currentCoinValue: 0,
+            coinPnL: 0,
+            coinPnLPercent: 0,
+            entryDate: new Date(),
+          });
+        }
     } else if (type === 'sell' && existingStock) {
       if (existingStock.quantity === quantity) {
         // Remove position completely
@@ -467,6 +656,91 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return userRole === 'admin' || userRole === 'superadmin';
   };
 
+  const buyStock = async (symbol: string, quantity: number, price: number): Promise<void> => {
+    try {
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+
+      const totalCost = quantity * price;
+      if (user.walletBalance < totalCost) {
+        throw new Error("Insufficient wallet balance");
+      }
+
+      await tradingService.buyStock({
+        id: '',
+        userId: user.id,
+        symbol,
+        quantity,
+        price,
+        type: 'buy',
+        total: totalCost,
+        timestamp: new Date().toISOString(),
+        status: 'pending',
+      });
+
+      const newBalance = user.walletBalance - totalCost;
+      updateUser({ walletBalance: newBalance });
+
+      addTransaction({
+        type: "buy",
+        stockSymbol: symbol,
+        quantity,
+        price,
+        amount: totalCost,
+        instrumentType: "stock",
+      });
+
+      updatePortfolio(symbol, quantity, price, "buy");
+    } catch (error) {
+      console.error("Failed to buy stock:", error);
+      throw error;
+    }
+  };
+
+  const sellStock = async (symbol: string, quantity: number, price: number): Promise<void> => {
+    try {
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+
+      const existing = portfolio.find((p) => p.symbol === symbol);
+      if (!existing || existing.quantity < quantity) {
+        throw new Error("Insufficient stock quantity");
+      }
+
+      await tradingService.sellStock({
+        id: '',
+        userId: user.id,
+        symbol,
+        quantity,
+        price,
+        type: 'sell',
+        total: quantity * price,
+        timestamp: new Date().toISOString(),
+        status: 'pending',
+      });
+
+      const totalProceeds = quantity * price;
+      const newBalance = user.walletBalance + totalProceeds;
+      updateUser({ walletBalance: newBalance });
+
+      addTransaction({
+        type: "sell",
+        stockSymbol: symbol,
+        quantity,
+        price,
+        amount: totalProceeds,
+        instrumentType: "stock",
+      });
+
+      updatePortfolio(symbol, quantity, price, "sell");
+    } catch (error) {
+      console.error("Failed to sell stock:", error);
+      throw error;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -480,6 +754,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         loginEmail,
         superAdminLogin,
         logout,
+        logoutAllDevices,
         updateUser,
         refreshWalletBalance,
         refreshCoinBalance,
@@ -495,7 +770,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         removeFromWishlist,
         isInWishlist,
         updatePortfolio,
+        buyStock,
+        sellStock,
         shouldRedirectToAdminDashboard,
+        totalInvestment,
+        currentValue,
+        totalPnL,
+        pnlPercent,
       }}
     >
       {children}

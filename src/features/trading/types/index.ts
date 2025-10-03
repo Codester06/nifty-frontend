@@ -98,3 +98,36 @@ export interface Watchlist {
   stocks: string[];
   createdAt: string;
 }
+
+export interface OrderRequest {
+  userId: string;
+  symbol: string;
+  quantity: number;
+  price: number;
+  type: 'buy' | 'sell';
+}
+
+export interface TradeExecutionRequest {
+  userId: string;
+  orderId: string;
+  symbol: string;
+  quantity: number;
+  price: number;
+  type: 'buy' | 'sell';
+}
+
+export interface PortfolioSummary {
+  totalValue: number;
+  totalPnL: number;
+  totalPnLPercentage: number;
+  positions: Position[];
+}
+
+export interface Position {
+  symbol: string;
+  quantity: number;
+  averagePrice: number;
+  currentPrice: number;
+  pnl: number;
+  pnlPercentage: number;
+}

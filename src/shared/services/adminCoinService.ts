@@ -181,6 +181,64 @@ class AdminCoinService {
   }
 
   /**
+   * Get all users coin information for admin view
+   */
+  async getAllUsersCoinInfo(): Promise<CoinServiceResponse<any[]>> {
+    try {
+      // In a real implementation, this would be an API call to get all users with their coin balances
+      // For now, we'll simulate this data
+      const mockUsers = [
+        {
+          userId: '1',
+          username: 'John Doe',
+          email: 'john@example.com',
+          mobile: '+91 9876543210',
+          balance: 5000,
+          totalPurchased: 10000,
+          totalSpent: 5000,
+          lastUpdated: new Date()
+        },
+        {
+          userId: '2',
+          username: 'Jane Smith',
+          email: 'jane@example.com',
+          mobile: '+91 9876543211',
+          balance: 750,
+          totalPurchased: 2000,
+          totalSpent: 1250,
+          lastUpdated: new Date()
+        },
+        {
+          userId: '3',
+          username: 'Mike Johnson',
+          email: 'mike@example.com',
+          mobile: '+91 9876543212',
+          balance: 15000,
+          totalPurchased: 20000,
+          totalSpent: 5000,
+          lastUpdated: new Date()
+        }
+      ];
+
+      return {
+        success: true,
+        data: mockUsers
+      };
+    } catch (error) {
+      console.error('Error getting all users coin info:', error);
+      return {
+        success: false,
+        error: {
+          name: 'CoinError',
+          message: error instanceof Error ? error.message : 'Unknown error',
+          type: 'TRANSACTION_FAILED' as any,
+          code: 'ADMIN_INFO_FAILED'
+        }
+      };
+    }
+  }
+
+  /**
    * Simulate payment success for manual coin additions
    * This replaces the actual payment gateway integration
    */

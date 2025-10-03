@@ -138,42 +138,10 @@ const AdminCoinManagement = () => {
     setError(null);
     
     try {
-      // In a real implementation, this would be an API call to get all users with their coin balances
-      // For now, we'll simulate this data
-      const mockUsers: UserCoinData[] = [
-        {
-          userId: '1',
-          username: 'John Doe',
-          email: 'john@example.com',
-          mobile: '+91 9876543210',
-          balance: 5000,
-          totalPurchased: 10000,
-          totalSpent: 5000,
-          lastUpdated: new Date()
-        },
-        {
-          userId: '2',
-          username: 'Jane Smith',
-          email: 'jane@example.com',
-          mobile: '+91 9876543211',
-          balance: 750,
-          totalPurchased: 2000,
-          totalSpent: 1250,
-          lastUpdated: new Date()
-        },
-        {
-          userId: '3',
-          username: 'Mike Johnson',
-          email: 'mike@example.com',
-          mobile: '+91 9876543212',
-          balance: 15000,
-          totalPurchased: 20000,
-          totalSpent: 5000,
-          lastUpdated: new Date()
-        }
-      ];
-      
-      setUsers(mockUsers);
+      const result = await adminCoinService.getAllUsersCoinInfo();
+      if (result.success && result.data) {
+        setUsers(result.data);
+      }
     } catch (error) {
       console.error('Error fetching users data:', error);
       setError('Failed to load users data');

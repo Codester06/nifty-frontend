@@ -1,19 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Smartphone, Monitor, Tablet } from 'lucide-react';
+import { ArrowLeft, Smartphone, Monitor } from 'lucide-react';
 import { useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { useAuth } from '@/shared/hooks/useAuth';
 import MobileOptionChain from '@/components/options/MobileOptionChain';
 import OptionChain from '@/components/options/OptionChain';
 import TradingModal from '@/components/forms/TradingModal';
-import type { OptionContract } from '@/shared/types';
+import { optionsDataService } from '@/shared/services/optionsDataService';
+import type { OptionContract, OptionChainData, SortConfig } from '@/shared/types';
+import type { OptionChainFilter } from '@/shared/types/options';
 
 const OptionsPage: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const isMobile = useMediaQuery('(max-width: 768px)');
-  const isTablet = useMediaQuery('(max-width: 1024px)');
   
   const [selectedOption, setSelectedOption] = useState<OptionContract | null>(null);
   const [tradingModal, setTradingModal] = useState({
@@ -21,6 +22,12 @@ const OptionsPage: React.FC = () => {
     type: 'buy' as 'buy' | 'sell',
   });
   const [viewMode, setViewMode] = useState<'auto' | 'mobile' | 'desktop'>('auto');
+
+  // Option chain state
+  const [optionChainData, setOptionChainData] = useState<OptionChainData | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ field: 'strike', direction: 'asc' });
+  const [filters] = useState<OptionChainFilter>({});
 
   // Determine effective view mode
   const getEffectiveViewMode = () => {
@@ -39,6 +46,34 @@ const OptionsPage: React.FC = () => {
     setTradingModal({ ...tradingModal, isOpen: false });
     setSelectedOption(null);
   };
+
+  // Fetch option chain data
+  const fetchOptionChain = useCallback(async (underlyingSymbol: string) => {
+    setIsLoading(true);
+    try {
+      const data = await optionsDataService.getOptionChain(underlyingSymbol);
+      setOptionChainData(data);
+    } catch (err) {
+      console.error('Error fetching option chain:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Handle sorting
+  const handleSort = useCallback((field: string) => {
+    setSortConfig(prevConfig => ({
+      field,
+      direction: prevConfig.field === field && prevConfig.direction === 'asc' ? 'desc' : 'asc',
+    }));
+  }, []);
+
+  // Fetch data on mount
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchOptionChain('NIFTY');
+    }
+  }, [isAuthenticated, fetchOptionChain]);
 
   if (!isAuthenticated) {
     return (
@@ -148,10 +183,21 @@ const OptionsPage: React.FC = () => {
       {/* Content */}
       <div className={effectiveViewMode === 'desktop' ? 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8' : ''}>
         {effectiveViewMode === 'mobile' ? (
-          <MobileOptionChain
-            underlying="NIFTY"
-            onOptionSelect={handleOptionSelect}
-          />
+          optionChainData ? (
+            <MobileOptionChain
+              options={optionChainData}
+              onOptionClick={handleOptionSelect}
+              isLoading={isLoading}
+              sortConfig={sortConfig}
+              onSort={handleSort}
+              filters={filters}
+            />
+          ) : (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-orange-200 border-t-orange-600 mx-auto mb-4"></div>
+              <p className="text-gray-600 dark:text-gray-400">Loading option chain...</p>
+            </div>
+          )
         ) : (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -160,7 +206,7 @@ const OptionsPage: React.FC = () => {
           >
             <OptionChain
               underlying="NIFTY"
-              variant="full-page"
+              variant="dashboard"
               onOptionSelect={handleOptionSelect}
               className="rounded-3xl"
             />

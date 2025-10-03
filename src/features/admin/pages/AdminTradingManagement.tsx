@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import apiService from '@/shared/services/api';
 
 interface Trade {
   _id: string;
@@ -29,13 +30,7 @@ const AdminTradingManagement: React.FC = () => {
       if (search) params.append('search', search);
       if (statusFilter) params.append('status', statusFilter);
       if (actionFilter) params.append('action', actionFilter);
-      const url = `/api/trades?${params.toString()}`;
-      const token = localStorage.getItem('nifty-bulk-token');
-      const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) throw new Error('Failed to fetch trades');
-      const data = await response.json();
+      const data = await apiService.getTrades(params);
       setTrades(data);
     } catch (err: unknown) {
       setError((err as Error).message || 'Failed to fetch trades');
@@ -57,11 +52,7 @@ const AdminTradingManagement: React.FC = () => {
 
   // Export CSV
   const handleExport = async () => {
-    const token = localStorage.getItem('nifty-bulk-token');
-    const response = await fetch('/api/trades/export', {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const blob = await response.blob();
+    const blob = await apiService.exportTrades();
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -189,4 +180,4 @@ const AdminTradingManagement: React.FC = () => {
   );
 };
 
-export default AdminTradingManagement; 
+export default AdminTradingManagement;

@@ -39,6 +39,8 @@ import DebugStockDetail from "@/pages/DebugStockDetail";
 import StockGraphPage from "@/features/trading/pages/StockGraphPage";
 import OptionsPage from "@/pages/OptionsPage";
 
+import TradingPage from "@/features/trading/pages/TradingPage";
+
 // Legal pages
 import TermsAndConditions from "@/pages/legal/TermsConditions";
 import PrivacyPolicy from "@/pages/legal/PrivacyPolicy";
@@ -106,6 +108,14 @@ export function AppRoutes() {
         <Route path="/stock/:symbol" element={<StockDetail />} />
         <Route path="/stock/:symbol/chart" element={<StockGraphPage />} />
         <Route path="/options" element={<OptionsPage />} />
+        <Route
+          path="/user/trading"
+          element={
+            <ProtectedRoute>
+              <TradingPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Auto-redirect based on role */}
         <Route path="/dashboard" element={<RoleBasedRedirect />} />
@@ -133,6 +143,14 @@ export function AppRoutes() {
           element={
             <ProtectedRoute>
               <TransactionsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/user/trading"
+          element={
+            <ProtectedRoute>
+              <TradingPage />
             </ProtectedRoute>
           }
         />

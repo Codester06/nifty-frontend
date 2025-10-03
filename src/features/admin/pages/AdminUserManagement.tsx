@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/shared/hooks/useAuth';
+import apiService from '@/shared/services/api';
 
 interface User {
   id: string;
@@ -15,8 +16,6 @@ interface User {
   lastLogin: string;
   _id?: string; // Added for backend compatibility
 }
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api';
 
 const AdminUserManagement = () => {
   const { logout, userRole } = useAuth();
@@ -40,25 +39,8 @@ const AdminUserManagement = () => {
 
   useEffect(() => {
     const fetchUsers = async () => {
-      const token = localStorage.getItem('nifty-bulk-token');
-      if (!token) {
-        setError('You must be logged in as admin to view users.');
-        console.error('No token found in localStorage.');
-        return;
-      }
-      const authHeader = `Bearer ${token}`;
-      console.log('Token:', token);
-      console.log('Authorization header:', authHeader);
       try {
-        const response = await fetch(`${API_BASE_URL}/users`, {
-          headers: { Authorization: authHeader },
-        });
-        if (!response.ok) {
-          const errData = await response.json();
-          setError(errData.error || 'Failed to fetch users');
-          return;
-        }
-        const data = await response.json();
+        const data = await apiService.getUsers();
         // Map _id to id for frontend compatibility
         setUsers(
           (data as Array<Record<string, unknown>>).map((u) => ({
@@ -111,12 +93,7 @@ const AdminUserManagement = () => {
   const handleDeleteUser = async (userId: string) => {
     if (!window.confirm('Are you sure you want to delete this user?')) return;
     try {
-      const token = localStorage.getItem('nifty-bulk-token');
-      const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) throw new Error('Failed to delete user');
+      await apiService.deleteUser(userId);
       setUsers((prev) => prev.filter((u) => u.id !== userId));
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : 'Failed to delete user');
@@ -126,17 +103,7 @@ const AdminUserManagement = () => {
   // Activate/Deactivate user
   const handleSetUserStatus = async (userId: string, status: 'active' | 'blocked' | 'pending') => {
     try {
-      const token = localStorage.getItem('nifty-bulk-token');
-      const response = await fetch(`${API_BASE_URL}/users/${userId}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ status }),
-      });
-      if (!response.ok) throw new Error('Failed to update user status');
-      const data = await response.json();
+      const data = await apiService.updateUserStatus(userId, status);
       setUsers((prev) => prev.map((u) => {
         if (u.id === data._id || u._id === data._id) {
           return {
@@ -156,18 +123,7 @@ const AdminUserManagement = () => {
   // Change user role
   const handleChangeUserRole = async (userId: string, newRole: 'user' | 'admin' | 'superadmin') => {
     try {
-      const token = localStorage.getItem('nifty-bulk-token');
-      const response = await fetch(`${API_BASE_URL}/users/${userId}/role`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ role: newRole }),
-      });
-      if (!response.ok) throw new Error('Failed to update user role');
-
-      const updatedUser = await response.json();
+      await apiService.updateUserRole(userId, newRole);
       setUsers((prev) => prev.map((u) => (u.id === userId || u._id === userId ? { ...u, role: newRole } : u)));
       alert(`User role updated to ${newRole} successfully!`);
     } catch (err: unknown) {
@@ -178,17 +134,7 @@ const AdminUserManagement = () => {
 
   const handleSaveUser = async (updatedUser: User) => {
     try {
-      const token = localStorage.getItem('nifty-bulk-token');
-      const response = await fetch(`${API_BASE_URL}/users/${updatedUser.id || updatedUser._id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(updatedUser),
-      });
-      if (!response.ok) throw new Error('Failed to update user');
-      const data = await response.json();
+      const data = await apiService.updateUser(updatedUser.id || updatedUser._id!, updatedUser);
       setUsers((prev) => prev.map((u) => (u.id === data.id || u._id === data._id ? { ...data, id: data._id } : u)));
       setShowEditModal(false);
       setEditedUser(null);
@@ -530,4 +476,4 @@ const AdminUserManagement = () => {
   );
 };
 
-export default AdminUserManagement; 
+export default AdminUserManagement;

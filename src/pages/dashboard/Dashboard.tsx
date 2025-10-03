@@ -25,22 +25,7 @@ const Dashboard = () => {
     }
   }, [shouldRedirectToAdminDashboard, navigate]);
 
-  useEffect(() => {
-    const fetchWallet = async () => {
-      try {
-        const token = localStorage.getItem('nifty-bulk-token');
-        const response = await fetch(`${API_BASE_URL}/users/wallet`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!response.ok) throw new Error('Failed to fetch wallet');
-        await response.json();
-        // setWalletBalance(data.balance); // Removed as per edit hint
-      } catch (err) {
-        console.error(err); // Removed setWalletError as it's no longer defined
-      }
-    };
-    fetchWallet();
-  }, []);
+
 
   useEffect(() => {
     const unsubscribe = startLivePriceUpdates(setLiveStocks);
@@ -152,8 +137,12 @@ const Dashboard = () => {
                     Wallet Balance
                   </p>
                   <p className={`font-bold mt-1 ${isMobile ? 'text-lg' : 'text-3xl mt-2'}`}>
-                    {isMobile 
-                      ? `₹${((user?.walletBalance ?? 0) / 1000).toFixed(0)}K`
+                    {isMobile
+                      ? user?.walletBalance && user.walletBalance > 0
+                        ? user.walletBalance >= 1000
+                          ? `₹${(user.walletBalance / 1000).toFixed(1)}K`
+                          : `₹${user.walletBalance.toLocaleString()}`
+                        : `₹0`
                       : `₹${(user?.walletBalance ?? 0).toLocaleString()}`
                     }
                   </p>
@@ -239,7 +228,7 @@ const Dashboard = () => {
             <div className="bg-gray-50 dark:bg-slate-700/50 rounded-2xl p-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Portfolio Performance</h3>
               <div className="h-32 flex items-end space-x-2">
-                {updatedPortfolio.slice(0, 8).map((stock, index) => {
+                {updatedPortfolio.slice(0, 8).map((stock) => {
                   const height = Math.max(10, (stock.quantity * stock.currentPrice / currentValue) * 100);
                   const isProfit = stock.currentPrice >= stock.avgPrice;
                   return (

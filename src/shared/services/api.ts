@@ -156,6 +156,15 @@ class ApiService {
     return this.handleResponse(response);
   }
 
+  async updateUserStatus(userId: string, status: string) {
+    const response = await fetch(`${API_BASE_URL}/users/${userId}/status`, {
+      method: 'PATCH',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ status }),
+    });
+    return this.handleResponse(response);
+  }
+
   // Dashboard endpoints
   async getDashboardStats() {
     const response = await fetch(`${API_BASE_URL}/admin/dashboard/stats`, {
@@ -174,12 +183,20 @@ class ApiService {
   }
 
   // Trading endpoints
-  async getTrades() {
-    const response = await fetch(`${API_BASE_URL}/admin/trades`, {
+  async getTrades(params: URLSearchParams) {
+    const response = await fetch(`${API_BASE_URL}/admin/trades?${params.toString()}`, {
       method: 'GET',
       headers: this.getHeaders(),
     });
     return this.handleResponse(response);
+  }
+
+  async exportTrades() {
+    const response = await fetch(`${API_BASE_URL}/admin/trades/export`, {
+      method: 'GET',
+      headers: this.getHeaders(),
+    });
+    return response.blob();
   }
 
   // Margin management endpoints
@@ -473,4 +490,4 @@ class ApiService {
 }
 
 export const apiService = new ApiService();
-export default apiService; 
+export default apiService;

@@ -14,6 +14,7 @@ import {
   Save,
   X,
 } from "lucide-react";
+import { adminService } from "../services/adminService";
 
 interface UserData {
   _id: string;
@@ -34,32 +35,6 @@ interface UserData {
   otp?: string;
   otpExpires?: string;
 }
-
-// Custom hook for API calls
-const useApi = (baseUrl: string) => {
-  const makeRequest = React.useCallback(
-    async (endpoint: string, options: RequestInit = {}) => {
-      const url = `${baseUrl}${endpoint}`;
-      const response = await fetch(url, {
-        headers: {
-          "Content-Type": "application/json",
-          ...options.headers,
-        },
-        ...options,
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
-      }
-
-      return response.json();
-    },
-    [baseUrl]
-  );
-
-  return { makeRequest };
-};
 
 // Memoized Stats Cards Component
 const StatsCards: React.FC<{ users: UserData[] }> = React.memo(({ users }) => {
@@ -109,7 +84,7 @@ const StatsCards: React.FC<{ users: UserData[] }> = React.memo(({ users }) => {
               Total Wallet Balance
             </p>
             <p className="text-xl lg:text-2xl font-bold text-purple-600">
-              ₹{stats.totalWalletBalance}
+              ₹{stats.totalWalletBalance || 0}
             </p>
           </div>
           <div className="w-6 h-6 lg:w-8 lg:h-8 bg-purple-100 rounded-full flex items-center justify-center">
@@ -147,13 +122,6 @@ const NiftyBulkAdminDashboard: React.FC = () => {
     password: "admin123",
   };
 
-  // Backend API configuration - EXACT URL
-  const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5001/api";
-  const HEALTH_CHECK_URL = import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || "http://localhost:5001";
-
-  // Use custom API hook
-  const { makeRequest } = useApi(API_BASE);
-
   // Add debug logging
   const logDebug = (message: string) => {
     console.log(`🔍 DEBUG: ${message}`);
@@ -166,22 +134,12 @@ const NiftyBulkAdminDashboard: React.FC = () => {
         logDebug("Checking backend connection...");
         setConnectionStatus("checking");
 
-        const response = await fetch(HEALTH_CHECK_URL, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
+        const isConnected = await adminService.checkBackendConnection();
 
-        logDebug(`Health check response status: ${response.status}`);
-
-        if (response.ok) {
-          const data = await response.json();
-          logDebug(`Backend response: ${JSON.stringify(data)}`);
+        if (isConnected) {
           setConnectionStatus("connected");
           return true;
         } else {
-          logDebug(`Backend error: ${response.status} ${response.statusText}`);
           setConnectionStatus("failed");
           return false;
         }
@@ -190,7 +148,7 @@ const NiftyBulkAdminDashboard: React.FC = () => {
         logDebug(`Connection failed: ${err.message}`);
         setConnectionStatus("failed");
         setError(
-          `Cannot connect to backend: ${err.message}\n\nMake sure:\n1. Backend is running on ${HEALTH_CHECK_URL}\n2. No firewall blocking the connection\n3. Check browser console for errors`
+          `Cannot connect to backend: ${err.message}\n\nMake sure:\n1. Backend is running\n2. No firewall blocking the connection\n3. Check browser console for errors`
         );
         return false;
       }
@@ -209,39 +167,17 @@ const NiftyBulkAdminDashboard: React.FC = () => {
         throw new Error("Backend server is not available");
       }
 
-      logDebug(`Making request to: ${API_BASE}/users`);
-
-      const response = await fetch(`${API_BASE}/debug/users`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      logDebug(`Users API response status: ${response.status}`);
-      logDebug(
-        `Response headers: ${JSON.stringify(
-          Object.fromEntries(response.headers.entries())
-        )}`
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        logDebug(`Error response body: ${errorText}`);
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
-      }
-
-      const data = await response.json();
-      logDebug(
-        `Received ${Array.isArray(data) ? data.length : "unknown"} users`
-      );
+      const data = await adminService.getUsers();
 
       if (!Array.isArray(data)) {
         throw new Error("Invalid data format received from server");
       }
 
-      setUsers(data);
-      setFilteredUsers(data);
+      // Filter out invalid users (those without _id or other required fields)
+      const validUsers = data.filter(user => user && user._id && user.username);
+
+      setUsers(validUsers);
+      setFilteredUsers(validUsers);
       setSuccessMessage(`Successfully loaded ${data.length} users`);
       setTimeout(() => setSuccessMessage(""), 3000);
       logDebug(`Success: ${data.length} users loaded`);
@@ -263,57 +199,44 @@ const NiftyBulkAdminDashboard: React.FC = () => {
       logDebug(`Toggling status for user ID: ${userId}`);
 
       try {
-        const response = await fetch(`${API_BASE}/debug/users/${userId}/toggle`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-
-        logDebug(`Toggle response status: ${response.status}`);
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(
-            errorData.error || `HTTP error! status: ${response.status}`
+        const response = await adminService.toggleUserStatus(userId);
+        if (response.success) {
+          const updatedUser = response.data;
+          logDebug(
+            `User updated: ${updatedUser.username} -> ${updatedUser.isActive}`
           );
+
+          // Update both users and filteredUsers states
+          const updatedUsers = users.map((user) =>
+            user._id === userId ? updatedUser : user
+          );
+          setUsers(updatedUsers);
+
+          // Apply current filters to get the new filtered list
+          const filtered = updatedUsers.filter((user) => {
+            const matchesSearch =
+              debouncedSearchTerm === "" ||
+              user.username.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+              user.email.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+              user.mobile.includes(debouncedSearchTerm) ||
+              user.pan.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
+
+            const matchesStatus =
+              filterStatus === "all" ||
+              (filterStatus === "active" && user.isActive) ||
+              (filterStatus === "inactive" && !user.isActive);
+
+            return matchesSearch && matchesStatus;
+          });
+
+          setFilteredUsers(filtered);
+          setSuccessMessage(
+            `User "${updatedUser.username}" ${updatedUser.isActive ? "activated" : "deactivated"} successfully`
+          );
+          setTimeout(() => setSuccessMessage(""), 3000);
+        } else {
+          setError(response.error?.message || 'Failed to toggle user status');
         }
-
-        const updatedUser = await response.json();
-        logDebug(
-          `User updated: ${updatedUser.username} -> ${updatedUser.isActive}`
-        );
-
-        // Update both users and filteredUsers states
-        const updatedUsers = users.map((user) =>
-          user._id === userId ? updatedUser : user
-        );
-        setUsers(updatedUsers);
-
-        // Apply current filters to get the new filtered list
-        const filtered = updatedUsers.filter((user) => {
-          const matchesSearch =
-            debouncedSearchTerm === "" ||
-            user.username.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-            user.email.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-            user.mobile.includes(debouncedSearchTerm) ||
-            user.pan.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
-
-          const matchesStatus =
-            filterStatus === "all" ||
-            (filterStatus === "active" && user.isActive) ||
-            (filterStatus === "inactive" && !user.isActive);
-
-          return matchesSearch && matchesStatus;
-        });
-
-        setFilteredUsers(filtered);
-        setSuccessMessage(
-          `User "${updatedUser.username}" ${
-            updatedUser.isActive ? "activated" : "deactivated"
-          } successfully`
-        );
-        setTimeout(() => setSuccessMessage(""), 3000);
       } catch (error) {
         const err = error as Error;
         logDebug(`Error toggling user: ${err.message}`);
@@ -365,49 +288,37 @@ const NiftyBulkAdminDashboard: React.FC = () => {
       logDebug(`Updating wallet balance for user ID: ${userId} to ₹${newBalance}`);
 
       try {
-        const response = await fetch(`${API_BASE}/debug/users/${userId}`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ walletBalance: newBalance }),
-        });
-
-        logDebug(`Wallet update response status: ${response.status}`);
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(
-            errorData.error || `HTTP error! status: ${response.status}`
+        const response = await adminService.updateWalletBalance(userId, newBalance);
+        if (response.success) {
+          const updatedUser = response.data;
+          logDebug(
+            `Wallet updated: ${updatedUser.username} -> ₹${updatedUser.walletBalance}`
           );
+
+          // Update both users and filteredUsers states
+          const updatedUsers = users.map((user) =>
+            user._id === userId ? updatedUser : user
+          );
+          setUsers(updatedUsers);
+
+          // Also update filteredUsers immediately
+          const updatedFilteredUsers = filteredUsers.map((user) =>
+            user._id === userId ? updatedUser : user
+          );
+          setFilteredUsers(updatedFilteredUsers);
+
+          setSuccessMessage(
+            `Wallet balance for "${updatedUser.username}" updated to ₹${updatedUser.walletBalance} successfully`
+          );
+          setTimeout(() => setSuccessMessage(""), 3000);
+
+          // Reset editing state
+          setEditingWallet(null);
+          setWalletAmount("");
+        } else {
+          setError(response.error?.message || 'Failed to update wallet balance');
         }
 
-        const updatedUser = await response.json();
-        logDebug(
-          `Wallet updated: ${updatedUser.username} -> ₹${updatedUser.walletBalance}`
-        );
-
-        // Update both users and filteredUsers states
-        const updatedUsers = users.map((user) =>
-          user._id === userId ? updatedUser : user
-        );
-        setUsers(updatedUsers);
-
-        // Also update filteredUsers immediately
-        const updatedFilteredUsers = filteredUsers.map((user) =>
-          user._id === userId ? updatedUser : user
-        );
-        setFilteredUsers(updatedFilteredUsers);
-        
-        setSuccessMessage(
-          `Wallet balance for "${updatedUser.username}" updated to ₹${updatedUser.walletBalance} successfully`
-        );
-        setTimeout(() => setSuccessMessage(""), 3000);
-        
-        // Reset editing state
-        setEditingWallet(null);
-        setWalletAmount("");
-        
       } catch (error) {
         const err = error as Error;
         logDebug(`Error updating wallet: ${err.message}`);
@@ -464,37 +375,11 @@ const NiftyBulkAdminDashboard: React.FC = () => {
     if (selectedUsers.size === 0) return;
     
     setLoading(true);
-    let successCount = 0;
-    let errorCount = 0;
-    let updatedUsers = [...users];
-
-    for (const userId of selectedUsers) {
-      try {
-        const user = users.find(u => u._id === userId);
-        if (user && !user.isActive) {
-          const response = await fetch(`${API_BASE}/debug/users/${userId}/toggle`, {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-            },
-          });
-
-          if (response.ok) {
-            const updatedUser = await response.json();
-            updatedUsers = updatedUsers.map(u => u._id === userId ? updatedUser : u);
-            successCount++;
-          } else {
-            errorCount++;
-          }
-        }
-      } catch (error) {
-        errorCount++;
-      }
-    }
-
-    // Update both states
-    setUsers(updatedUsers);
+    const { successCount, errorCount } = await adminService.bulkActivateUsers(Array.from(selectedUsers));
     
+    const updatedUsers = users.map(u => selectedUsers.has(u._id) ? {...u, isActive: true} : u);
+    setUsers(updatedUsers);
+
     // Apply filters to updated users
     const filtered = updatedUsers.filter((user) => {
       const matchesSearch =
@@ -523,37 +408,11 @@ const NiftyBulkAdminDashboard: React.FC = () => {
     if (selectedUsers.size === 0) return;
     
     setLoading(true);
-    let successCount = 0;
-    let errorCount = 0;
-    let updatedUsers = [...users];
-
-    for (const userId of selectedUsers) {
-      try {
-        const user = users.find(u => u._id === userId);
-        if (user && user.isActive) {
-          const response = await fetch(`${API_BASE}/debug/users/${userId}/toggle`, {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-            },
-          });
-
-          if (response.ok) {
-            const updatedUser = await response.json();
-            updatedUsers = updatedUsers.map(u => u._id === userId ? updatedUser : u);
-            successCount++;
-          } else {
-            errorCount++;
-          }
-        }
-      } catch (error) {
-        errorCount++;
-      }
-    }
-
-    // Update both states
-    setUsers(updatedUsers);
+    const { successCount, errorCount } = await adminService.bulkDeactivateUsers(Array.from(selectedUsers));
     
+    const updatedUsers = users.map(u => selectedUsers.has(u._id) ? {...u, isActive: false} : u);
+    setUsers(updatedUsers);
+
     // Apply filters to updated users
     const filtered = updatedUsers.filter((user) => {
       const matchesSearch =
@@ -645,7 +504,7 @@ const NiftyBulkAdminDashboard: React.FC = () => {
             {/* Connection Status Indicator */}
             <div className="mt-4">
               <div
-                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${ 
                   connectionStatus === "connected"
                     ? "bg-green-100 text-green-800"
                     : connectionStatus === "failed"
@@ -782,7 +641,7 @@ const NiftyBulkAdminDashboard: React.FC = () => {
             </div>
             <div className="flex items-center gap-2 lg:gap-4">
               <div
-                className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${ 
                   connectionStatus === "connected"
                     ? "bg-green-100 text-green-800"
                     : "bg-red-100 text-red-800"
@@ -943,7 +802,7 @@ const NiftyBulkAdminDashboard: React.FC = () => {
                 Backend server is not connected
               </p>
               <p className="text-sm text-gray-400">
-                Please ensure the server is running on {HEALTH_CHECK_URL}
+                Please ensure the server is running
               </p>
               <button
                 onClick={checkBackendConnection}
@@ -985,7 +844,7 @@ const NiftyBulkAdminDashboard: React.FC = () => {
                           </div>
                         </div>
                         <span
-                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${ 
                             user.isActive
                               ? "bg-green-100 text-green-800"
                               : "bg-red-100 text-red-800"
@@ -1068,7 +927,7 @@ const NiftyBulkAdminDashboard: React.FC = () => {
 
                       <div className="flex flex-wrap gap-1 mb-3">
                         <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${ 
                             user.isEmailVerified
                               ? "bg-green-100 text-green-800"
                               : "bg-red-100 text-red-800"
@@ -1077,7 +936,7 @@ const NiftyBulkAdminDashboard: React.FC = () => {
                           Email {user.isEmailVerified ? "✓" : "✗"}
                         </span>
                         <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${ 
                             user.isMobileVerified
                               ? "bg-green-100 text-green-800"
                               : "bg-red-100 text-red-800"
@@ -1086,7 +945,7 @@ const NiftyBulkAdminDashboard: React.FC = () => {
                           Mobile {user.isMobileVerified ? "✓" : "✗"}
                         </span>
                         <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${ 
                             user.isPanVerified
                               ? "bg-green-100 text-green-800"
                               : "bg-red-100 text-red-800"
@@ -1103,7 +962,7 @@ const NiftyBulkAdminDashboard: React.FC = () => {
                         <button
                           onClick={() => toggleUserStatus(user._id)}
                           disabled={loading}
-                          className={`inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                          className={`inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${ 
                             user.isActive
                               ? "bg-red-100 text-red-700 hover:bg-red-200"
                               : "bg-green-100 text-green-700 hover:bg-green-200"
@@ -1175,7 +1034,7 @@ const NiftyBulkAdminDashboard: React.FC = () => {
                           <div>
                             <p className="text-sm font-medium text-gray-900">{user.username}</p>
                             <p className="text-sm text-gray-500">PAN: {user.pan}</p>
-                            <p className="text-xs text-gray-400">ID: {user._id.slice(-8)}</p>
+                            <p className="text-xs text-gray-400">ID: {user._id?.slice(-8) || 'N/A'}</p>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -1187,7 +1046,7 @@ const NiftyBulkAdminDashboard: React.FC = () => {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex flex-col space-y-1">
                             <span
-                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${ 
                                 user.isEmailVerified
                                   ? "bg-green-100 text-green-800"
                                   : "bg-red-100 text-red-800"
@@ -1196,7 +1055,7 @@ const NiftyBulkAdminDashboard: React.FC = () => {
                               Email {user.isEmailVerified ? "✓" : "✗"}
                             </span>
                             <span
-                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${ 
                                 user.isMobileVerified
                                   ? "bg-green-100 text-green-800"
                                   : "bg-red-100 text-red-800"
@@ -1205,7 +1064,7 @@ const NiftyBulkAdminDashboard: React.FC = () => {
                               Mobile {user.isMobileVerified ? "✓" : "✗"}
                             </span>
                             <span
-                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${ 
                                 user.isPanVerified
                                   ? "bg-green-100 text-green-800"
                                   : "bg-red-100 text-red-800"
@@ -1275,7 +1134,7 @@ const NiftyBulkAdminDashboard: React.FC = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${ 
                               user.isActive
                                 ? "bg-green-100 text-green-800"
                                 : "bg-red-100 text-red-800"
@@ -1288,7 +1147,7 @@ const NiftyBulkAdminDashboard: React.FC = () => {
                           <button
                             onClick={() => toggleUserStatus(user._id)}
                             disabled={loading}
-                            className={`inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                            className={`inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${ 
                               user.isActive
                                 ? "bg-red-100 text-red-700 hover:bg-red-200"
                                 : "bg-green-100 text-green-700 hover:bg-green-200"
@@ -1316,23 +1175,7 @@ const NiftyBulkAdminDashboard: React.FC = () => {
           )}
         </div>
 
-        {/* Debug Information (only in development) */}
-        {process.env.NODE_ENV === "development" && (
-          <div className="mt-8 bg-gray-100 rounded-lg p-4">
-            <h3 className="text-sm font-medium text-gray-700 mb-2">
-              Debug Information
-            </h3>
-            <div className="text-xs text-gray-600 space-y-1">
-              <p>API Base URL: {API_BASE}</p>
-              <p>Connection Status: {connectionStatus}</p>
-              <p>Total Users: {users.length}</p>
-              <p>Filtered Users: {filteredUsers.length}</p>
-              <p>Search Term: "{debouncedSearchTerm}"</p>
-              <p>Filter Status: {filterStatus}</p>
-              <p>Loading: {loading ? "true" : "false"}</p>
-            </div>
-          </div>
-        )}
+
       </div>
     </div>
   );

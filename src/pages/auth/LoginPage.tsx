@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { motion } from 'framer-motion';
 import { Smartphone, Mail, Lock, Eye, EyeOff, ArrowRight, Shield, Zap, TrendingUp } from 'lucide-react';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api';
+import apiService from '@/shared/services/api';
 
 const LoginPage = () => {
   const [loginMethod, setLoginMethod] = useState<'mobile' | 'email'>('mobile');
@@ -30,23 +29,12 @@ const LoginPage = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login/mobile`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mobile }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setSuccess('OTP sent to your mobile number');
-        setShowOtp(true);
-      } else {
-        setError(data.error || 'Failed to send OTP');
-      }
+      await apiService.sendLoginOtp(mobile);
+      setSuccess('OTP sent to your mobile number');
+      setShowOtp(true);
     } catch (error) {
       console.log(error)
-      setError('Network error. Please try again.');
+      setError('Failed to send OTP. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -60,18 +48,23 @@ const LoginPage = () => {
     }
     setError('');
     setIsLoading(true);
-    
-    const success = await login(mobile, otp);
-    setIsLoading(false);
-    
-    if (success) {
-      if (userRole === 'admin' || userRole === 'superadmin') {
-        navigate('/admin/dashboard');
+
+    try {
+      const success = await login(mobile, otp);
+      setIsLoading(false);
+
+      if (success) {
+        if (userRole === 'admin' || userRole === 'superadmin') {
+          navigate('/admin/dashboard');
+        } else {
+          navigate('/dashboard');
+        }
       } else {
-        navigate('/dashboard');
+        setError('Invalid OTP. Please try again.');
       }
-    } else {
-      setError('Invalid OTP. Please try again.');
+    } catch {
+      setIsLoading(false);
+      setError('Login failed. Please try again.');
     }
   };
 
@@ -163,10 +156,10 @@ const LoginPage = () => {
                   maxLength={6}
                 />
               </div>
-              <p className="mt-3 text-sm text-gray-600 dark:text-gray-400 flex items-center space-x-2">
+              <div className="mt-3 text-sm text-gray-600 dark:text-gray-400 flex items-center space-x-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                 <span>OTP sent to {mobile}</span>
-              </p>
+              </div>
             </div>
 
             <button

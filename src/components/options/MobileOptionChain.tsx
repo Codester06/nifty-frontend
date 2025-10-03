@@ -1,9 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { useIsMobile } from '@/shared/hooks/useMediaQuery';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Activity, 
+import {
   Eye,
   Filter,
   ChevronDown,
@@ -90,15 +86,15 @@ const OptionCard: React.FC<OptionCardProps> = ({
             {/* Call LTP */}
             <div className="text-center">
               <div className="text-sm font-semibold text-green-600 dark:text-green-400">
-                ₹{callOption.ltp.toFixed(2)}
+                ₹{callOption.ltp?.toFixed(2) || 'N/A'}
               </div>
               <div className="text-xs text-gray-500 dark:text-gray-400">CE</div>
             </div>
-            
+
             {/* Put LTP */}
             <div className="text-center">
               <div className="text-sm font-semibold text-red-600 dark:text-red-400">
-                ₹{putOption.ltp.toFixed(2)}
+                ₹{putOption.ltp?.toFixed(2) || 'N/A'}
               </div>
               <div className="text-xs text-gray-500 dark:text-gray-400">PE</div>
             </div>
@@ -139,37 +135,37 @@ const OptionCard: React.FC<OptionCardProps> = ({
                 <div>
                   <span className="text-gray-600 dark:text-gray-400">LTP:</span>
                   <span className="ml-1 font-medium text-gray-900 dark:text-white">
-                    ₹{callOption.ltp.toFixed(2)}
+                    ₹{callOption.ltp?.toFixed(2) || 'N/A'}
                   </span>
                 </div>
                 <div>
                   <span className="text-gray-600 dark:text-gray-400">Volume:</span>
                   <span className="ml-1 font-medium text-gray-900 dark:text-white">
-                    {callOption.volume.toLocaleString()}
+                    {callOption.volume?.toLocaleString() || 'N/A'}
                   </span>
                 </div>
                 <div>
                   <span className="text-gray-600 dark:text-gray-400">Bid/Ask:</span>
                   <span className="ml-1 font-medium text-gray-900 dark:text-white">
-                    {callOption.bid.toFixed(2)}/{callOption.ask.toFixed(2)}
+                    {callOption.bid?.toFixed(2) || 'N/A'}/{callOption.ask?.toFixed(2) || 'N/A'}
                   </span>
                 </div>
                 <div>
                   <span className="text-gray-600 dark:text-gray-400">OI:</span>
                   <span className="ml-1 font-medium text-gray-900 dark:text-white">
-                    {callOption.oi.toLocaleString()}
+                    {callOption.oi?.toLocaleString() || 'N/A'}
                   </span>
                 </div>
                 <div>
                   <span className="text-gray-600 dark:text-gray-400">IV:</span>
                   <span className="ml-1 font-medium text-gray-900 dark:text-white">
-                    {callOption.iv.toFixed(2)}%
+                    {callOption.iv?.toFixed(2) || 'N/A'}%
                   </span>
                 </div>
                 <div>
                   <span className="text-gray-600 dark:text-gray-400">Delta:</span>
                   <span className="ml-1 font-medium text-gray-900 dark:text-white">
-                    {callOption.delta.toFixed(3)}
+                    {callOption.greeks?.delta?.toFixed(3) || 'N/A'}
                   </span>
                 </div>
               </div>
@@ -195,37 +191,37 @@ const OptionCard: React.FC<OptionCardProps> = ({
                 <div>
                   <span className="text-gray-600 dark:text-gray-400">LTP:</span>
                   <span className="ml-1 font-medium text-gray-900 dark:text-white">
-                    ₹{putOption.ltp.toFixed(2)}
+                    ₹{putOption.ltp?.toFixed(2) || 'N/A'}
                   </span>
                 </div>
                 <div>
                   <span className="text-gray-600 dark:text-gray-400">Volume:</span>
                   <span className="ml-1 font-medium text-gray-900 dark:text-white">
-                    {putOption.volume.toLocaleString()}
+                    {putOption.volume?.toLocaleString() || 'N/A'}
                   </span>
                 </div>
                 <div>
                   <span className="text-gray-600 dark:text-gray-400">Bid/Ask:</span>
                   <span className="ml-1 font-medium text-gray-900 dark:text-white">
-                    {putOption.bid.toFixed(2)}/{putOption.ask.toFixed(2)}
+                    {putOption.bid?.toFixed(2) || 'N/A'}/{putOption.ask?.toFixed(2) || 'N/A'}
                   </span>
                 </div>
                 <div>
                   <span className="text-gray-600 dark:text-gray-400">OI:</span>
                   <span className="ml-1 font-medium text-gray-900 dark:text-white">
-                    {putOption.oi.toLocaleString()}
+                    {putOption.oi?.toLocaleString() || 'N/A'}
                   </span>
                 </div>
                 <div>
                   <span className="text-gray-600 dark:text-gray-400">IV:</span>
                   <span className="ml-1 font-medium text-gray-900 dark:text-white">
-                    {putOption.iv.toFixed(2)}%
+                    {putOption.iv?.toFixed(2) || 'N/A'}%
                   </span>
                 </div>
                 <div>
                   <span className="text-gray-600 dark:text-gray-400">Delta:</span>
                   <span className="ml-1 font-medium text-gray-900 dark:text-white">
-                    {putOption.delta.toFixed(3)}
+                    {putOption.greeks?.delta?.toFixed(3) || 'N/A'}
                   </span>
                 </div>
               </div>
@@ -483,8 +479,12 @@ const MobileOptionChain: React.FC<MobileOptionChainProps> = ({
       {filteredAndSortedStrikes.length > 0 ? (
         <div className="space-y-3">
           {filteredAndSortedStrikes.map((strike) => {
-            const { call, put } = options.options[strike];
-            
+            const strikeData = options.options[strike];
+            if (!strikeData || !strikeData.call || !strikeData.put) {
+              return null; // Skip invalid strikes
+            }
+            const { call, put } = strikeData;
+
             return (
               <OptionCard
                 key={strike}

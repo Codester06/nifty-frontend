@@ -5,6 +5,7 @@ import { Stock, OptionContract } from '@/shared/types';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { validateOrder, isMarketOpen, type OrderValidationRequest } from '@/shared/utils/orderValidation';
 import OptionsOrderForm from '../options/OptionsOrderForm';
+import { tradingService } from '@/features/trading/services/tradingService';
 import OrderPreview from './OrderPreview';
 
 interface TradingModalProps {
@@ -156,139 +157,70 @@ const TradingModal = ({
     setIsProcessing(true);
 
     try {
+      const tradeData = {
+        userId: user.id,
+        asset: instrumentType === 'option' && optionContract ? optionContract.symbol : stock?.symbol,
+        action: type.toUpperCase(),
+        quantity: quantityNum,
+        price: displayPrice,
+        amount: totalAmount,
+        instrumentType,
+        ...(instrumentType === 'option' && optionContract ? {
+          optionDetails: {
+            strike: optionContract.strike,
+            expiry: optionContract.expiry,
+            optionType: optionContract.optionType,
+            premium: optionContract.ltp,
+            lotSize: optionContract.lotSize,
+          }
+        } : {}),
+        status: 'Completed',
+      };
+
       if (type === 'buy') {
         // Deduct from wallet balance for buy order
         updateUser({ walletBalance: user.walletBalance - totalAmount });
-        
-        const transactionData = {
-          type: 'buy' as const,
-          quantity: quantityNum,
-          amount: totalAmount,
-          instrumentType,
-          ...(instrumentType === 'option' && optionContract ? {
-            stockSymbol: optionContract.symbol,
-            stockName: displayName,
-            price: optionContract.ltp,
-            optionDetails: {
-              strike: optionContract.strike,
-              expiry: optionContract.expiry,
-              optionType: optionContract.optionType,
-              premium: optionContract.ltp,
-              lotSize: optionContract.lotSize,
-            }
-          } : stock ? {
-            stockSymbol: stock.symbol,
-            stockName: stock.name,
-            price: stock.price,
-          } : {})
-        };
-
-        addTransaction(transactionData);
-
-        // Backend trade creation
-        try {
-          const token = localStorage.getItem('nifty-bulk-token');
-          await fetch('/api/trades', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              userId: user.id,
-              asset: instrumentType === 'option' && optionContract ? optionContract.symbol : stock?.symbol,
-              action: 'BUY',
-              quantity: quantityNum,
-              price: displayPrice,
-              amount: totalAmount,
-              instrumentType,
-              ...(instrumentType === 'option' && optionContract ? {
-                optionDetails: {
-                  strike: optionContract.strike,
-                  expiry: optionContract.expiry,
-                  optionType: optionContract.optionType,
-                  premium: optionContract.ltp,
-                  lotSize: optionContract.lotSize,
-                }
-              } : {}),
-              status: 'Completed',
-            }),
-          });
-        } catch {
-          /* ignore for now */
-        }
-        
-        const successMessage = instrumentType === 'option' 
-          ? `Successfully bought ${quantityNum} lot${quantityNum !== 1 ? 's' : ''} of ${displayName} for ₹${totalAmount.toLocaleString()}!`
-          : `Successfully bought ${quantityNum} shares of ${stock?.name} for ₹${totalAmount.toLocaleString()}!`;
-        showToastMessage(successMessage);
       } else {
         // Add to wallet balance for sell order
         updateUser({ walletBalance: user.walletBalance + totalAmount });
-        
-        const transactionData = {
-          type: 'sell' as const,
-          quantity: quantityNum,
-          amount: totalAmount,
-          instrumentType,
-          ...(instrumentType === 'option' && optionContract ? {
-            stockSymbol: optionContract.symbol,
-            stockName: displayName,
-            price: optionContract.ltp,
-            optionDetails: {
-              strike: optionContract.strike,
-              expiry: optionContract.expiry,
-              optionType: optionContract.optionType,
-              premium: optionContract.ltp,
-              lotSize: optionContract.lotSize,
-            }
-          } : stock ? {
-            stockSymbol: stock.symbol,
-            stockName: stock.name,
-            price: stock.price,
-          } : {})
-        };
-
-        addTransaction(transactionData);
-
-        // Backend trade creation
-        try {
-          const token = localStorage.getItem('nifty-bulk-token');
-          await fetch('/api/trades', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              userId: user.id,
-              asset: instrumentType === 'option' && optionContract ? optionContract.symbol : stock?.symbol,
-              action: 'SELL',
-              quantity: quantityNum,
-              price: displayPrice,
-              amount: totalAmount,
-              instrumentType,
-              ...(instrumentType === 'option' && optionContract ? {
-                optionDetails: {
-                  strike: optionContract.strike,
-                  expiry: optionContract.expiry,
-                  optionType: optionContract.optionType,
-                  premium: optionContract.ltp,
-                  lotSize: optionContract.lotSize,
-                }
-              } : {}),
-              status: 'Completed',
-            }),
-          });
-        } catch {
-          /* ignore for now */
-        }
-        
-        const successMessage = instrumentType === 'option' 
-          ? `Successfully sold ${quantityNum} lot${quantityNum !== 1 ? 's' : ''} of ${displayName} for ₹${totalAmount.toLocaleString()}!`
-          : `Successfully sold ${quantityNum} shares of ${stock?.name} for ₹${totalAmount.toLocaleString()}!`;
-        showToastMessage(successMessage);
       }
+        
+      const transactionData = {
+        type: type as const,
+        quantity: quantityNum,
+        amount: totalAmount,
+        instrumentType,
+        ...(instrumentType === 'option' && optionContract ? {
+          stockSymbol: optionContract.symbol,
+          stockName: displayName,
+          price: optionContract.ltp,
+          optionDetails: {
+            strike: optionContract.strike,
+            expiry: optionContract.expiry,
+            optionType: optionContract.optionType,
+            premium: optionContract.ltp,
+            lotSize: optionContract.lotSize,
+          }
+        } : stock ? {
+          stockSymbol: stock.symbol,
+          stockName: stock.name,
+          price: stock.price,
+        } : {})
+      };
+
+      addTransaction(transactionData);
+
+      // Backend trade creation
+      try {
+        await tradingService.createTrade(tradeData);
+      } catch {
+        /* ignore for now */
+      }
+        
+      const successMessage = instrumentType === 'option' 
+          ? `Successfully ${type} ${quantityNum} lot${quantityNum !== 1 ? 's' : ''} of ${displayName} for ₹${totalAmount.toLocaleString()}!`
+          : `Successfully ${type} ${quantityNum} shares of ${stock?.name} for ₹${totalAmount.toLocaleString()}!`;
+      showToastMessage(successMessage);
 
       // Call onTradeComplete callback if provided
       if (onTradeComplete) {

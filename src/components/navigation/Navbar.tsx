@@ -20,7 +20,7 @@ import {
   Activity,
 } from "lucide-react";
 import { useAuth } from "@/shared/hooks/useAuth";
-import { useIsMobile, useIsTablet } from "@/shared/hooks/useMediaQuery";
+import { useIsMobile } from "@/shared/hooks/useMediaQuery";
 import ThemeToggle from "./ThemeToggle";
 import ProfileDropdown from "./ProfileDropdown";
 import { WalletModal } from "@/components/forms";
@@ -40,7 +40,6 @@ const Navbar = () => {
   const searchRef = useRef<HTMLDivElement>(null);
   const trendsRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
-  const isTablet = useIsTablet();
 
   // Close overlays when clicking outside
   useEffect(() => {
@@ -273,15 +272,25 @@ const Navbar = () => {
 
               {/* Wallet for authenticated users - Desktop */}
               {isAuthenticated && userRole !== "superadmin" && !isMobile && (
-                <button
-                  onClick={() => setIsWalletOpen(true)}
-                  className="hidden sm:flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200/50 dark:border-green-700/50 rounded-xl hover:shadow-lg hover:shadow-green-500/20 transition-all duration-300 group"
-                >
-                  <Wallet className="h-4 w-4 text-green-600 dark:text-green-400 group-hover:scale-110 transition-transform duration-300" />
-                  <span className="text-sm font-mono font-semibold text-green-700 dark:text-green-300">
-                    ₹{(user?.walletBalance ?? 0).toLocaleString()}
-                  </span>
-                </button>
+                <>
+                  <button
+                    onClick={() => setIsWalletOpen(true)}
+                    className="hidden sm:flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200/50 dark:border-green-700/50 rounded-xl hover:shadow-lg hover:shadow-green-500/20 transition-all duration-300 group"
+                  >
+                    <Wallet className="h-4 w-4 text-green-600 dark:text-green-400 group-hover:scale-110 transition-transform duration-300" />
+                    <span className="text-sm font-mono font-semibold text-green-700 dark:text-green-300">
+                      ₹{(user?.walletBalance ?? 0).toLocaleString()}
+                    </span>
+                  </button>
+                  {/* Trading page icon CTA */}
+                  <button
+                    onClick={() => window.location.href = '/user/trading'}
+                    title="Trading"
+                    className="ml-3 p-2 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:shadow-lg transition-all duration-300"
+                  >
+                    <TrendingUp className="h-5 w-5" />
+                  </button>
+                </>
               )}
 
 
